@@ -572,6 +572,82 @@ const chapters = [
 
 const companionDocs = [
   {
+    name: "Gobernanza Editorial",
+    path: "content/gobernanza-editorial-y-cadencia.mdx",
+    minLines: 60,
+    requiredHeadings: [
+      "## Contexto",
+      "## Cadencia trimestral (QBR editorial)",
+      "## Capítulos sensibles (prioridad alta)",
+      "## Semaforo de obsolescencia",
+      "## Gatillos de actualizacion inmediata",
+    ],
+    requiredTerms: [
+      "trimestral",
+      "owner",
+      "obsolescencia",
+      "capitulo 16",
+      "capitulo 24",
+    ],
+  },
+  {
+    name: "Glosario Canonico",
+    path: "content/glosario-canonico.mdx",
+    minLines: 60,
+    requiredHeadings: [
+      "## Contexto",
+      "## Terminos no negociables",
+      "## Reglas editoriales",
+    ],
+    requiredTerms: [
+      "tenant",
+      "tenant_id",
+      "control plane",
+      "error budget",
+      "hitl",
+      "outbox",
+      "golden path",
+    ],
+  },
+  {
+    name: "Rubrica de Dominio",
+    path: "content/rubrica-de-dominio-por-niveles.mdx",
+    minLines: 70,
+    requiredHeadings: [
+      "## Contexto",
+      "## Nivel 0 - Fundamentos",
+      "## Nivel 5 - Operacion elite",
+      "## Criterio de avance",
+    ],
+    requiredTerms: [
+      "autoevaluacion",
+      "nivel 3",
+      "nivel 4",
+      "tenant_id",
+      "error budget",
+    ],
+  },
+  {
+    name: "Roadmap 30/60/90",
+    path: "content/roadmap-30-60-90-adopcion-enterprise.mdx",
+    minLines: 55,
+    requiredHeadings: [
+      "## Contexto",
+      "## Fase 30 dias - Baseline confiable",
+      "## Fase 60 dias - Operacion distribuida controlada",
+      "## Fase 90 dias - Hardening IA y governance avanzada",
+      "## KPI sugeridos por fase",
+    ],
+    requiredTerms: [
+      "30 dias",
+      "60 dias",
+      "90 dias",
+      "tenant_id",
+      "slo",
+      "eval harness",
+    ],
+  },
+  {
     name: "Caso End-to-End",
     path: "content/caso-end-to-end-buildingos.mdx",
     minLines: 70,
@@ -697,6 +773,6 @@ await validateDocuments(companionDocs);
 
 if (!process.exitCode) {
   console.log(
-    "OK: Capitulos 1 al 24 consistentes con guia editorial y cobertura tecnica.",
+    "OK: Capitulos 1 al 24 y companion docs consistentes con guia editorial.",
   );
 }

@@ -13,6 +13,18 @@ const meta = {
   "cheatsheet-decisiones-arquitectura": {
     title: "Cheatsheet de Decisiones",
   },
+  "gobernanza-editorial-y-cadencia": {
+    title: "Gobernanza Editorial",
+  },
+  "glosario-canonico": {
+    title: "Glosario Canonico",
+  },
+  "rubrica-de-dominio-por-niveles": {
+    title: "Rubrica de Dominio",
+  },
+  "roadmap-30-60-90-adopcion-enterprise": {
+    title: "Roadmap 30/60/90",
+  },
   "caso-end-to-end-buildingos": {
     title: "Caso End-to-End BuildingOS",
   },

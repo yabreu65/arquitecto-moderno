@@ -1,0 +1,86 @@
+---
+title: Gobernanza Editorial y Cadencia
+description: Politica trimestral para mantener vigente el contenido critico de arquitectura e IA.
+---
+
+# Gobernanza Editorial y Cadencia
+
+## Contexto
+
+Este libro ya funciona como referencia tecnica.
+Para sostener ese nivel, necesita gobernanza editorial continua, no solo escritura puntual.
+
+La seccion de IA y operacion cambia rapido por:
+- cambios de APIs y modelos
+- nuevas practicas de seguridad
+- variaciones de costo y latencia
+
+Sin cadencia formal, el contenido se desactualiza aunque la estructura sea buena.
+
+## Objetivo
+
+Mantener consistencia, vigencia y calidad del libro con revisiones periodicas auditable.
+
+## Cadencia trimestral (QBR editorial)
+
+Frecuencia recomendada:
+- revision formal cada trimestre
+- revisiones ad-hoc ante cambios de mercado de alto impacto
+
+Ritmo:
+1. semana 1: relevamiento de cambios externos
+2. semana 2: evaluacion de impacto por capitulo
+3. semana 3: actualizacion de contenido y QA
+4. semana 4: publicacion y changelog editorial
+
+## Capítulos sensibles (prioridad alta)
+
+Revision obligatoria por trimestre:
+- Capitulo 16 (RAG multi-tenant)
+- Capitulo 17 (orquestacion de agentes)
+- Capitulo 18 (gobernanza y resiliencia IA)
+- Capitulo 24 (evaluacion continua y operacion IA)
+
+## Owner model
+
+Cada capitulo sensible debe tener:
+- owner primario (responsable de vigencia)
+- owner secundario (backup)
+- fecha de ultima revision
+- estado de obsolescencia
+
+## Semaforo de obsolescencia
+
+- Verde: contenido vigente y validado en el ultimo trimestre
+- Amarillo: contenido parcialmente vigente; requiere update menor
+- Rojo: riesgo de obsolescencia; requiere revision prioritaria
+
+Criterio de color:
+- cambios incompatibles en APIs o frameworks
+- cambios regulatorios relevantes
+- drift en practicas de seguridad/operacion
+
+## Gatillos de actualizacion inmediata
+
+- cambio mayor en proveedor/modelo de IA usado como referencia
+- vulnerabilidad o incidente de seguridad que invalide guidance
+- cambio de patron operativo que afecte SLO/FinOps
+- update de stack base que rompa snippets o flujos recomendados
+
+## Registro de revision
+
+Formato minimo por revision:
+- fecha
+- capitulo
+- owner
+- cambio realizado
+- razon del cambio
+- impacto esperado
+
+## Criterio operativo
+
+No todos los capitulos requieren la misma frecuencia.
+Los bloques de fundamentos cambian mas lento; IA y operacion cambian mas rapido.
+
+El objetivo no es editar por editar.
+Es proteger el valor del libro con evidencia y cadencia.

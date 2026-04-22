@@ -1,0 +1,73 @@
+---
+title: Roadmap 30/60/90 de Adopcion Enterprise
+description: Plan de implementacion por fases para adoptar arquitectura moderna con control de riesgo.
+---
+
+# Roadmap 30/60/90 de Adopcion Enterprise
+
+## Contexto
+
+Arquitectura sin plan de adopcion se queda en teoria.
+Este roadmap traduce el libro a ejecucion incremental para equipos reales.
+
+## Fase 30 dias - Baseline confiable
+
+Objetivo:
+- estabilizar fundamentos y observabilidad minima.
+
+Entregables:
+- tenant context canonico en API y jobs
+- logs/trazas con `tenant_id` y `trace_id`
+- checklist de seguridad minima aplicada
+- primeras decisiones registradas en ADR
+
+Riesgos mitigados:
+- acceso cruzado por falta de contexto
+- falta de trazabilidad en incidentes
+
+## Fase 60 dias - Operacion distribuida controlada
+
+Objetivo:
+- formalizar contratos y capacidad operativa.
+
+Entregables:
+- contratos async versionados (outbox/idempotencia)
+- runbook de incidentes y ownership de on-call
+- scorecard por servicio para seguridad/resiliencia
+- politicas de retry/DLQ por dominio
+
+Riesgos mitigados:
+- inconsistencia distribuida
+- ruido operativo sin proceso comun
+
+## Fase 90 dias - Hardening IA y governance avanzada
+
+Objetivo:
+- operar IA como capability enterprise.
+
+Entregables:
+- eval harness de quality/safety/cost
+- HITL en flujos criticos
+- rate limit y token budgeting por plan
+- politica trimestral de revision de capitulos IA
+
+Riesgos mitigados:
+- sobrecosto de IA
+- riesgo legal/operativo por acciones no gobernadas
+
+## KPI sugeridos por fase
+
+- 30 dias: cobertura de `tenant_id` en flujos criticos
+- 60 dias: tasa de exito async + MTTR de incidentes
+- 90 dias: costo IA por tenant y tasa de regresion en evals
+
+Guardrail transversal:
+- cada fase debe cumplir al menos un objetivo `slo` por capability critica.
+
+## Criterio senior
+
+No persigas simultaneamente todas las mejoras.
+Secuencia correcta:
+- primero consistencia,
+- despues confiabilidad,
+- luego autonomia y optimizacion.

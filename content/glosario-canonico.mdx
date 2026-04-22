@@ -1,0 +1,89 @@
+---
+title: Glosario Canonico
+description: Definiciones estables y terminologia no negociable para mantener consistencia editorial y tecnica.
+---
+
+# Glosario Canonico
+
+## Contexto
+
+Un libro de arquitectura pierde calidad cuando cada capitulo usa terminos distintos para el mismo concepto.
+Este glosario fija definiciones canonicas para todo el contenido.
+
+## Terminos no negociables
+
+### tenant
+
+Unidad organizacional cliente dentro de una plataforma SaaS compartida.
+
+### tenant_id
+
+Identificador canonico del tenant.
+Debe propagarse en API, eventos, jobs, logs, trazas y controles de seguridad.
+
+### tenant context
+
+Contexto de ejecucion por request/job que incluye al menos `tenant_id`, actor y metadatos de autorizacion.
+
+### control plane
+
+Plano que decide y orquesta politicas, configuracion y lifecycle.
+
+### data plane
+
+Plano que ejecuta trafico funcional y operaciones del producto.
+
+### SLI
+
+Indicador observable de servicio (latencia, error rate, etc.).
+
+### SLO
+
+Objetivo cuantitativo sobre uno o mas SLI.
+
+### error budget
+
+Presupuesto de error permitido por el SLO en una ventana definida.
+
+### RAG
+
+Retrieval-Augmented Generation.
+Pipeline de recuperacion de contexto externo para asistir respuestas del modelo.
+
+### pre-filtering
+
+Filtrado de autorizacion aplicado antes del retrieval semantico.
+
+### HITL
+
+Human-in-the-loop: intervencion humana obligatoria en acciones criticas.
+
+### checkpointing
+
+Persistencia de estado para pausar/reanudar flujos de agentes.
+
+### outbox pattern
+
+Patron para asegurar consistencia entre cambio en DB y publicacion de evento.
+
+### idempotencia
+
+Propiedad por la cual repetir una operacion no duplica efectos.
+
+### saga
+
+Patron de coordinacion distribuida con pasos locales y compensaciones.
+
+### golden path
+
+Camino estandar de desarrollo/operacion recomendado por plataforma.
+
+### scorecard
+
+Matriz de madurez para evaluar calidad operativa por servicio.
+
+## Reglas editoriales
+
+- Usar siempre `tenant` y nunca sinonimos ambiguos.
+- Preferir terminos de este glosario en todo capitulo nuevo.
+- Si un termino nuevo se vuelve estructural, incorporarlo aqui antes de expandir uso.

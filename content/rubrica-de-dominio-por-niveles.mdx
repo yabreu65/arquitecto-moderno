@@ -1,0 +1,86 @@
+---
+title: Rubrica de Dominio por Niveles
+description: Criterios de evaluacion para medir avance real del lector en arquitectura SaaS, distribuida e IA.
+---
+
+# Rubrica de Dominio por Niveles
+
+## Contexto
+
+Leer no equivale a dominar.
+Esta rubrica permite evaluar progresion real por niveles del libro.
+
+## Nivel 0 - Fundamentos
+
+Dominio esperado:
+- comprende contratos API, identidad y persistencia
+- distingue desacoplamiento estructural de desacoplamiento temporal
+
+Autoevaluacion:
+- [ ] puedo explicar JWT/RBAC y sus trade-offs
+- [ ] puedo disenar cache-aside y evitar errores comunes
+- [ ] puedo identificar coupling en un modulo NestJS
+
+## Nivel 1 - Arquitectura de aplicacion
+
+Dominio esperado:
+- define fronteras de dominio y reglas de dependencia
+- aplica clean/hexagonal sin contaminar dominio
+
+Autoevaluacion:
+- [ ] separo dominio/aplicacion/infraestructura con criterio
+- [ ] versiono APIs con ciclo de vida y sunset
+- [ ] justifico cuando NO dividir en microservicios
+
+## Nivel 2 - SaaS multi-tenant
+
+Dominio esperado:
+- elige modelo de aislamiento por segmento de tenant
+- implementa tenant context y seguridad tenant-aware
+
+Autoevaluacion:
+- [ ] puedo decidir pool/schema/silo con trade-offs
+- [ ] puedo diseñar control plane + tenant catalog
+- [ ] puedo defender auditoria y compliance por tenant
+- [ ] puedo trazar correctamente `tenant_id` de punta a punta
+
+## Nivel 3 - Sistemas distribuidos
+
+Dominio esperado:
+- disena flujos EDA con colas, retries e idempotencia
+- opera lifecycle y resiliencia con criterio
+
+Autoevaluacion:
+- [ ] diferencio eventos de dominio y jobs de trabajo
+- [ ] puedo diseñar DLQ y politica de retry por error
+- [ ] puedo justificar decisiones con SLO y evidencia operativa
+
+## Nivel 4 - IA segura y gobernada
+
+Dominio esperado:
+- implementa RAG multi-tenant seguro
+- diseña orquestacion de agentes con HITL y limites
+
+Autoevaluacion:
+- [ ] aplico pre-filtering para autorizacion en retrieval
+- [ ] diseno supervisor/network segun riesgo y latencia
+- [ ] incorporo guardrails de costo y seguridad en runtime
+
+## Nivel 5 - Operacion elite
+
+Dominio esperado:
+- opera plataforma con SRE, contratos distribuidos y evaluacion continua de IA
+- alinea tecnologia, governance y negocio
+
+Autoevaluacion:
+- [ ] manejo error budget como politica de release
+- [ ] aplico outbox/saga/idempotencia en sistemas reales
+- [ ] uso golden paths y scorecards para escalar equipos
+- [ ] opero eval harness de quality/safety/cost en agentes
+
+## Criterio de avance
+
+Regla pragmatica:
+- avanzar de nivel cuando se cumplen al menos 80% de checks del nivel actual.
+
+Si no se cumple, volver a capitulos base antes de profundizar.
