@@ -1,168 +1,174 @@
 ---
-title: Capitulo 18 - Frameworks y Estado
-description: Comparativa 2026 de LangGraph, CrewAI y AutoGen con foco arquitectonico.
+title: Capitulo 18 - Gobernanza y Resiliencia en IA SaaS
+description: HITL, checkpointing, cuotas por tenant y guardrails operativos para agentes.
 ---
 
-# Capitulo 18 - Frameworks y Estado
+# Capitulo 18 - Gobernanza y Resiliencia en IA SaaS
 
 ## Contexto
 
-Elegir framework sin criterios claros termina en lock-in y deuda tecnica.
-La comparativa debe partir de requerimientos de arquitectura, no de hype.
+Cuando un agente pasa de responder texto a ejecutar acciones reales, el riesgo cambia de escala.
+En un SaaS B2B, el problema no es solo precision. Es control operativo por `tenant_id`.
 
-Cada framework promete acelerar agentes.
-La pregunta real para arquitectura no es "cual esta de moda".
-Es:
-- cual encaja con mi modelo operativo
-- cual puedo gobernar en produccion
-- cual me deja evolucionar sin rehacer todo
+Sin gobernanza aparecen sintomas previsibles:
+- loops infinitos de tool-calling
+- consumo descontrolado de tokens
+- acciones criticas sin aprobacion humana
+- auditoria incompleta ante incidentes
+
+Arquitectura madura trata al agente como actor de plataforma, con permisos, cuotas y trazabilidad.
+En la practica, se modela como identidad tecnica con RBAC minimo y auditoria continua.
 
 ## Que aprendera el lector
 
-- Diferencias entre LangGraph, CrewAI y AutoGen.
-- Gestion de estado y memoria en flujos agenticos.
-- Criterios de seleccion segun complejidad y operacion.
-- Como evitar lock-in de framework.
-- Como evaluar madurez para entorno enterprise.
+- Como disenar Human-in-the-loop (HITL) para acciones criticas.
+- Como implementar checkpointing durable y reanudacion segura.
+- Como gestionar noisy neighbors en consumo de LLM.
+- Como aplicar rate limiting y token budgeting por tenant.
+- Como usar frameworks sin caer en lock-in de framework.
 
 ## Introduccion tecnica
 
-Los frameworks no reemplazan diseno arquitectonico.
-Solo aceleran implementacion cuando existe una estrategia clara de orquestacion.
+La pregunta correcta no es "como hacer que el agente responda".
+La pregunta correcta es "como evitar que el agente rompa el sistema cuando falla".
 
-Tu framework es una decision de plataforma.
-Impacta:
-- modelo de estado
-- observabilidad
-- testing
-- deploy y costos
+Gobernanza en IA significa definir:
+- que puede hacer el agente
+- bajo que condiciones puede hacerlo
+- quien aprueba acciones irreversibles
+- como se audita cada tool call
 
-## Comparativa 2026: LangGraph, CrewAI y AutoGen
+## 18.1 Human-in-the-loop (HITL)
 
-### LangGraph (enfoque por grafos)
+HITL no es un modal estetico. Es una politica de control en el flujo de ejecucion.
 
-Fortalezas:
-- modelado explicito de estados y transiciones
-- adecuado para workflows complejos y deterministas
-- buen encaje con necesidad de control de flujo
+Casos tipicos para HITL obligatorio:
+- transferencias de fondos
+- cambios de infraestructura
+- apertura/cierre de servicios fisicos
+- comunicaciones regulatorias
 
-Riesgos:
-- mayor complejidad de modelado inicial
-- curva de aprendizaje para equipos sin experiencia en state machines
+Regla:
+- mayor impacto externo -> mayor nivel de aprobacion humana.
 
-Ideal cuando priorizas gobernanza de flujo y trazabilidad.
+## Checkpointing y reanudacion segura
 
-### CrewAI (enfoque por roles y equipos)
+Si el flujo se pausa para aprobacion, el orquestador debe persistir estado exacto.
 
-Fortalezas:
-- expresivo para colaboracion entre agentes
-- rapido para prototipos multi-rol
+Checkpoint minimo:
+- `thread_id`
+- `tenant_id`
+- estado de memoria conversacional
+- paso actual y siguiente transicion
+- evidencia para auditoria
 
-Riesgos:
-- puede volverse opaco en flujos muy grandes
-- requiere disciplina para no derivar en "magia"
+Sin checkpoint durable, HITL es fragil y no auditable.
 
-Ideal para equipos que buscan productividad inicial en escenarios colaborativos.
+## 18.2 Noisy neighbors y cuotas de token
 
-### AutoGen (conversacional multi-agente)
+Un solo tenant puede consumir el presupuesto de IA de toda la plataforma.
+Esto rompe SLO y margenes si no se gobierna desde el control plane.
 
-Fortalezas:
-- flexible para interacciones entre agentes
-- util en exploracion de estrategias de dialogo
+### Rate limiting por tenant
 
-Riesgos:
-- control de estado y costos puede complicarse
-- necesita buena gobernanza para produccion estable
+Controles recomendados:
+- limite por minuto para requests LLM
+- limite concurrente de workflows agenticos
+- politicas distintas por plan (`starter`, `growth`, `enterprise`)
 
-Ideal para casos con dinamica de conversacion rica y experimentacion guiada.
+Si no hay limite por `tenant_id`, el costo se concentra en los tenants mas agresivos.
 
-## Criterios de comparacion arquitectonica
+### Token budgeting por plan
 
-Evalua frameworks con matriz explicita:
-- control de estado
-- soporte de memoria
-- trazabilidad/observabilidad
-- capacidad de testing
-- extensibilidad de tools
-- costo operativo
-- lock-in tecnico
+El presupuesto de tokens debe ser parte del producto, no un detalle de infraestructura.
 
-Si no hay matriz, la eleccion suele ser emocional.
+Modelo practico:
+- cuota mensual por plan
+- alertas al 80/90/100%
+- degradacion controlada cuando se supera presupuesto
 
-## Gestion de estado y memoria
+Integracion sugerida:
+- interceptor en NestJS que mida tokens por tool call
+- registro central por `tenant_id`, `user_id`, `agent_id`, `trace_id`
 
-La pregunta clave no es "tiene memoria?".
-Es "como gobierna memoria en condiciones reales".
+## Guardrails anti-loop y kill-switch
 
-Revisar:
-- persistencia de estado entre ejecuciones
-- aislamiento por tenant
-- versionado de contexto
-- limpieza/retencion de memoria
+Los agentes pueden caer en ciclos de razonamiento o tool-calling sin fin.
 
-Framework sin modelo de estado claro = deuda segura.
+Minimos operativos:
+- maximo de iteraciones por flujo
+- timeout total por ejecucion
+- maximo de tools por paso
+- kill-switch global y por tenant
 
-## Estrategia anti lock-in
+Regla:
+- la autonomia se habilita por defecto solo en flujos reversibles.
 
-Aunque uses framework, protege tu dominio:
-- interfaces propias para agentes y tools
-- contratos de entrada/salida estables
-- capa adaptadora hacia framework
+## Frameworks como detalle de implementacion
 
-Asi podes cambiar framework sin reescribir toda la logica de negocio.
+LangGraph, CrewAI o AutoGen pueden resolver partes distintas del problema.
+Pero el framework no reemplaza gobernanza.
+
+Uso recomendado:
+- LangGraph para control explicito de estado y transiciones
+- CrewAI para colaboracion por roles en flujos menos criticos
+- AutoGen para experimentacion conversacional controlada
+
+Criterio senior:
+- abstraer dominio y politicas para evitar lock-in de framework.
 
 ## Trade-offs y criterios de decision
 
-### Trade-off 1: velocidad de prototipo vs robustez de produccion
+### Trade-off 1: autonomia vs control
 
-Frameworks muy amigables aceleran demos.
-No siempre sostienen operacion compleja.
-
-Criterio:
-- validar con casos de produccion, no solo playground.
-
-### Trade-off 2: flexibilidad vs control
-
-Mas flexibilidad facilita experimentacion.
-Menos control complica compliance y debugging.
+Mas autonomia reduce friccion.
+Menos control aumenta riesgo operativo.
 
 Criterio:
-- en entornos enterprise, priorizar trazabilidad y control.
+- activar autonomia plena solo en acciones de bajo impacto.
 
-### Trade-off 3: adopcion rapida vs lock-in
+### Trade-off 2: velocidad de respuesta vs aprobacion humana
 
-Adoptar rapido reduce time-to-value.
-Tambien puede cerrar puertas futuras.
+HITL agrega latencia.
+Quitar HITL puede crear incidentes graves.
 
 Criterio:
-- abstraer dominio para preservar opcion de cambio.
+- latencia extra aceptable cuando protege acciones irreversibles.
+
+### Trade-off 3: costo de IA vs experiencia premium
+
+Subir limites mejora UX en tenants intensivos.
+Tambien puede destruir margen operativo.
+
+Criterio:
+- alinear cuota y prioridad con plan y valor de contrato.
 
 ## Errores comunes (y por que pasan)
 
-- Elegir framework por comunidad sin pruebas de carga real.
-- No medir costo por ejecucion y por flujo.
-- Acoplar business logic al API del framework.
-- Ignorar limitaciones de observabilidad.
-- No definir estrategia de salida (exit strategy).
+- Dejar acciones criticas sin HITL.
+- No persistir checkpoint por `tenant_id`.
+- No imponer limites de iteracion y timeout.
+- Medir calidad del texto sin medir costo por flujo.
+- Acoplar politicas de seguridad al framework.
 
-La causa: confundir herramienta de desarrollo con decision arquitectonica.
+La causa central es tratar agentes como feature de UX y no como sistema distribuido con riesgo.
 
 ## Checklist de arquitectura para este capitulo
 
-- [ ] Existe matriz objetiva de comparacion.
-- [ ] Se evaluo estado/memoria en contexto multi-tenant.
-- [ ] Se valido observabilidad end-to-end.
-- [ ] Hay estrategia de testing de flujos.
-- [ ] Se midio costo real por escenario clave.
-- [ ] El dominio no depende directamente del framework.
-- [ ] Existe plan de migracion o fallback.
-- [ ] Se evaluo seguridad de tools y permisos.
-- [ ] La eleccion se justifica por requerimientos, no por hype.
+- [ ] Flujos criticos tienen HITL definido por politica.
+- [ ] Checkpoints se persisten con aislamiento por `tenant_id`.
+- [ ] Rate limits por tenant estan aplicados en runtime.
+- [ ] Existe token budgeting por plan con alertas.
+- [ ] Cada tool call se audita con `trace_id`.
+- [ ] Hay limites de iteracion, tiempo y acciones por flujo.
+- [ ] Existe kill-switch global y por tenant.
+- [ ] El dominio no depende de un solo framework.
+- [ ] Se definio estrategia anti lock-in para migracion futura.
 
 ## Estructura lista para expandir
 
-- Matriz comparativa por capacidades.
-- Estado y memoria por framework.
-- Tradeoffs de extensibilidad.
-- Estrategia de adopcion gradual.
-- Politica de abstraccion anti lock-in.
+- Politicas HITL por tipo de accion.
+- Modelo de checkpoint y recuperacion.
+- Cuotas de tokens y facturacion por tenant.
+- Guardrails anti-loop y runbooks de incidentes.
+- Matriz de evaluacion de framework por riesgo y operacion.

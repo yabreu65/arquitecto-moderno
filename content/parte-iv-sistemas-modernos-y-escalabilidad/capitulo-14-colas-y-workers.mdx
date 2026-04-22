@@ -55,6 +55,7 @@ Meter objetos gigantes en cola aumenta costo y riesgo de inconsistencia.
 Un worker debe tolerar ejecuciones repetidas sin duplicar efectos.
 
 Ejemplos de control:
+- `idempotency_key` por operacion (idealmente derivada de `event_id`)
 - clave idempotente por operacion
 - verificacion de estado previo
 - operaciones upsert seguras
@@ -94,6 +95,35 @@ Puntos arquitectonicos clave:
 
 No confundas capacidad de encolar con capacidad de operar.
 
+### Ejemplo de processor tenant-aware
+
+```ts
+@Processor("ai-tasks")
+export class AiAnalysisProcessor {
+  @Process("analyze-risk")
+  async handleRiskAnalysis(job: Job<{
+    tenant_id: string;
+    idempotency_key: string;
+    payload: unknown;
+  }>) {
+    const { tenant_id, idempotency_key, payload } = job.data;
+
+    const alreadyProcessed = await this.idempotencyStore.exists(
+      tenant_id,
+      idempotency_key,
+    );
+
+    if (alreadyProcessed) return { status: "deduplicated" };
+
+    const result = await this.aiAdapter.analyze(payload);
+    await this.idempotencyStore.markDone(tenant_id, idempotency_key);
+    return result;
+  }
+}
+```
+
+Este patron evita duplicar efectos cuando hay retries o entrega repetida.
+
 ## Multi-tenant en colas
 
 En SaaS B2B debes decidir politicas de aislamiento:
@@ -103,6 +133,33 @@ En SaaS B2B debes decidir politicas de aislamiento:
 Sea cual sea la topologia:
 - todo job tenant-scoped debe incluir `tenant_id`
 - logs y metricas deben permitir analisis por tenant
+
+### Noisy neighbor en colas
+
+Sin estrategia de aislamiento, un tenant con jobs pesados puede degradar a todos.
+
+Mitigaciones comunes:
+- cola separada para tenants enterprise
+- prioridad por `plan_tier` o tipo de job
+- limites de concurrencia por tenant
+
+Regla:
+- usar misma politica para todos los tenants parece simple,
+- en crecimiento real termina rompiendo SLO de segmentos premium.
+
+## Circuit breaker en integraciones externas
+
+En tareas que dependen de IA o proveedores externos, retries solos no alcanzan.
+Si el proveedor esta degradado, seguir golpeando empeora el incidente.
+
+Patron recomendado:
+- abrir circuito tras umbral de fallos
+- fallar rapido durante ventana de enfriamiento
+- reintentar de forma controlada en half-open
+
+Resultado:
+- evita cascada de tiempo de espera
+- protege workers y Redis de saturacion por errores repetitivos
 
 ## Trade-offs y criterios de decision
 

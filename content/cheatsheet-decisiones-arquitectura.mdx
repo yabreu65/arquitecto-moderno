@@ -1,0 +1,100 @@
+---
+title: Cheatsheet de Decisiones de Arquitectura
+description: Matriz ejecutiva para decidir aislamiento, IA, versionado, evolucion y antipatrones.
+---
+
+# Cheatsheet de Decisiones de Arquitectura - El Arquitecto Moderno
+
+Guia rapida para elegir patrones con criterio tecnico y foco en riesgo de negocio.
+
+## 1) Matriz de aislamiento de datos (multi-tenancy)
+
+La decision mas critica para seguridad, cumplimiento y margen (FinOps).
+
+| Escenario | Patron recomendado | Justificacion tecnica |
+| --- | --- | --- |
+| Clientes long-tail | Pool (shared DB/schema) | Maxima densidad de tenants y menor costo operativo; reforzar con Postgres RLS y `tenant_id` obligatorio |
+| Clientes enterprise | Silo (database-per-tenant) | Aislamiento fuerte, rendimiento predecible y mejor postura de compliance |
+| Crecimiento hibrido | Control plane + Tenant Catalog | Permite mover tenants de Pool a Silo con bajo riesgo y sin downtime perceptible |
+| Camino medio | Shared DB + isolated schemas | Aislamiento logico robusto con operacion consolidada |
+
+## 2) Gobernanza y autorizacion en IA (RAG)
+
+Objetivo: que el LLM nunca vea contexto no autorizado.
+
+- `Pre-filtering` (estandar enterprise): resolver permisos antes del retrieval y enviar filtros estrictos por `tenant_id` y `doc_id`.
+- `Post-filtering` (rapido pero riesgoso): recuperar primero y filtrar despues; puede dejar cero contexto util o respuestas sesgadas.
+- Aislamiento vectorial recomendado: namespaces para tenants premium y metadata filtering estricto para segmentos de costo sensible.
+
+Regla:
+- en SaaS B2B con datos sensibles, `pre-filtering` no es opcional.
+
+## 3) Orquestacion de agentes y HITL
+
+Disenar agentes inteligentes pero controlables.
+
+- Patron `Supervisor`: un agente central descompone tarea y delega a especialistas; mejora trazabilidad y control.
+- Patron `Network`: colaboracion descentralizada entre agentes; util para flujos de baja latencia y alta interaccion.
+- `Human-in-the-loop` (HITL): checkpoints obligatorios para acciones financieras, legales o irreversibles.
+
+Checklist minimo:
+- checkpoint persistido por `tenant_id`
+- auditoria por tool call
+- limites de iteracion y kill-switch por tenant
+
+## 4) Diseno de codigo y adaptadores (nivel 1)
+
+Proteger el nucleo de negocio contra obsolescencia de proveedores.
+
+- Arquitectura hexagonal: dependencias hacia adentro (dominio/aplicacion).
+- Puertos (interfaces): expresan que necesita el negocio (ej. `AiGenerationPort`).
+- Adaptadores: implementan el como (ej. `OpenAiAdapter`, `PrismaRepository`).
+
+Resultado:
+- cambiar proveedor de IA o persistencia sin tocar casos de uso.
+
+## 5) Estrategia de versionado de APIs
+
+Mantener contratos estables sin frenar evolucion.
+
+| Estrategia | Cuando usar | Trade-off |
+| --- | --- | --- |
+| URI Path (`/v1`) | Fase temprana, onboarding rapido, soporte simple | URLs mas verbosas |
+| Header-based (`X-API-Version`) | Escala masiva, multiples clientes enterprise | Mayor complejidad operativa y de observabilidad |
+| Content Negotiation (`Accept: application/vnd...`) | Ecosistemas API avanzados | Curva de adopcion alta |
+
+Guardrail:
+- en API publica, priorizar versiones mayores (`v1`, `v2`) y politica clara de `Warning` + `Sunset`.
+
+## 6) Evolucion: del monolito a microservicios
+
+Romper la unidad de despliegue solo con evidencia.
+
+| Senal de fractura | Que indica | Accion recomendada |
+| --- | --- | --- |
+| Friccion de despliegue entre equipos | Release de un dominio bloquea a los demas | Extraer por dominio con contratos estables |
+| Escalabilidad divergente | Un modulo consume recursos desproporcionados | Escalado independiente con extraccion gradual |
+| Aislamiento de fallos insuficiente | Falla local tumba capacidades no relacionadas | Separar runtime y aplicar resiliencia por servicio |
+
+Estrategia recomendada:
+- Strangler Fig + SLO-driven decomposition con OpenTelemetry (p95, error rate, MTTR).
+
+## 7) Lista negra: antipatrones killer
+
+Lo que hay que desactivar temprano:
+
+- `Jumble`: mezcla de logica de negocio, DB y capa API.
+- `Stovepipe`: integraciones punto a punto sin gobernanza.
+- `Vendor lock-in`: acoplamiento directo a SDKs propietarios.
+- `Swiss Army Knife`: interfaces que intentan hacer todo.
+
+Tratamiento:
+- limites de dominio claros
+- API gateway/event bus donde corresponda
+- capas de adaptadores
+- SRP y contratos pequenos
+
+## Criterio del Arquitecto Senior
+
+"Tu exito no se mide por cuanta complejidad agregas, sino por cuanta complejidad accidental eliminas.
+Disena sistemas faciles de borrar, faciles de testear en aislamiento y donde `tenant_id` sea ciudadano de primera clase en todo el flujo de datos."

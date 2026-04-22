@@ -100,6 +100,20 @@ Reglas recomendadas:
 
 No todo agente debe tener acceso a todo.
 
+## Agente como identidad de plataforma
+
+En arquitectura SaaS, un agente no es "magia".
+Debe tratarse como un principal de seguridad con permisos limitados.
+
+Contrato minimo por agente:
+- identidad tecnica propia (service account)
+- scope RBAC explicito por tool
+- cuotas de consumo por `tenant_id`
+- auditoria de cada decision ejecutable
+
+Regla senior:
+- si un agente puede ejecutar una accion, esa accion debe poder trazarse y revocarse.
+
 ## Gestion de estado y memoria
 
 Sin estado controlado:
@@ -233,6 +247,125 @@ La regla es activarlo solo en acciones con efectos externos o irreversibles:
 - comunicaciones legales o regulatorias
 
 Cada checkpoint y cada aprobacion deben ir al audit log con evidencia contextual.
+
+## PROFUNDIZACION - Supervisor Agent en NestJS
+
+### Problema que resuelve: agente monolitico vs especializado
+
+Un agente unico que intenta inspeccionar danos, estimar costos, elegir proveedor y disparar acciones legales
+tiende a degradar calidad por saturacion de contexto.
+
+El patron Supervisor divide responsabilidades:
+- un agente central analiza objetivo y riesgo
+- agentes especialistas ejecutan subtareas con tools limitadas
+- el supervisor valida resultados antes de avanzar
+
+Esto reduce confusiones de razonamiento y mejora gobernanza por paso.
+
+### Arquitectura jerarquica en BuildingOS
+
+Caso: "fuga de gas en sotano".
+
+- `Supervisor`: clasifica urgencia y decide orden de ejecucion
+- `SafetyAgent`: consulta protocolo en RAG seguro (ver Capitulo 16)
+- `MaintenanceAgent`: busca tecnicos certificados del tenant
+- `NotificationAgent`: comunica a residentes/autoridades segun policy
+
+Regla:
+- cada agente recibe solo el contexto minimo necesario para su tarea.
+
+### Implementacion tecnica (deep dive)
+
+Siguiendo arquitectura hexagonal, el supervisor vive en aplicacion y depende de un puerto de IA,
+no de SDK especifico.
+
+#### A. Estado explicito para checkpointing
+
+```ts
+export interface MaintenanceState {
+  reportId: string;
+  tenantId: string;
+  emergencyLevel: "low" | "high";
+  assignedWorkers: string[];
+  humanApprovalRequired: boolean;
+  messages: Array<{ role: string; content: string }>;
+}
+```
+
+Sin estado explicito, pausar/reanudar flujos largos se vuelve impredecible.
+
+#### B. Supervisor service (el cerebro)
+
+```ts
+@Injectable()
+export class MaintenanceSupervisorService {
+  constructor(
+    private readonly aiOrchestrator: IAiOrchestrator,
+    private readonly tenantContext: TenantContext,
+  ) {}
+
+  async orchestrateRepair(reportId: string, description: string) {
+    const tenantId = this.tenantContext.tenantId;
+
+    const workflow = this.aiOrchestrator.createWorkflow<MaintenanceState>({
+      initialState: {
+        reportId,
+        tenantId,
+        emergencyLevel: "low",
+        assignedWorkers: [],
+        humanApprovalRequired: false,
+        messages: [{ role: "user", content: description }],
+      },
+    });
+
+    workflow.addNode("inspector", this.inspectorAgent);
+    workflow.addNode("budgeter", this.budgeterAgent);
+    workflow.addNode("notifier", this.notifierAgent);
+
+    workflow.addEdge("inspector", (state) =>
+      state.emergencyLevel === "high" ? "notifier" : "budgeter",
+    );
+
+    return workflow.execute();
+  }
+}
+```
+
+El supervisor no "hace todo": decide, delega, valida y enruta.
+
+### Gobernanza de delegacion: aislamiento y minimo privilegio
+
+Controles obligatorios:
+- data masking por agente (mantenimiento no necesita datos financieros)
+- tools tenant-scoped con inyeccion automatica de `tenant_id`
+- politica RBAC por tool para limitar superficie de accion
+
+Si una tool acepta `tenant_id` manual desde prompt, el riesgo de acceso cruzado sube fuerte.
+
+### Intervencion humana y checkpointing durable
+
+Para acciones con costo financiero o riesgo fisico:
+- persistir snapshot del estado en Postgres
+- marcar estado `awaiting_human_intervention`
+- reanudar solo por evento de aprobacion valido
+
+Este evento de aprobacion debe pasar por control plane y tenant resolution (ver Capitulo 10.4)
+para evitar reanudaciones sobre contexto equivocado.
+
+### Criterio senior: cuando usar este patron
+
+Usarlo cuando:
+- hay multiples ramificaciones de flujo
+- necesitas auditoria paso a paso por compliance
+- el costo del error es alto
+
+No usarlo cuando:
+- el caso es una respuesta de chat simple
+- la latencia es critica de extremo a extremo
+- el presupuesto de tokens es muy limitado
+
+Trade-off central:
+- el supervisor mejora control y seguridad, pero consume mas tokens por validacion y sintesis de pasos.
 
 ## Trade-offs y criterios de decision
 

@@ -10,6 +10,9 @@ const meta = {
   introduccion: {
     title: "Introduccion",
   },
+  "cheatsheet-decisiones-arquitectura": {
+    title: "Cheatsheet de Decisiones",
+  },
   "guia-editorial": {
     title: "Guia editorial",
     display: "hidden",

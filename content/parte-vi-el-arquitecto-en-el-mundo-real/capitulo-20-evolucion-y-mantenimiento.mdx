@@ -38,6 +38,19 @@ Si una dimension se ignora, la evolucion queda incompleta.
 
 ## Del monolito modular a microservicios
 
+### Punto de partida recomendado: monolito modular
+
+En BuildingOS, el primer estadio sano no es microservicios.
+Es monolito modular con fronteras de dominio claras en NestJS.
+
+Ventajas reales:
+- deploy unico y simple
+- comunicacion en memoria sin latencia de red
+- transacciones mas directas en base de datos
+
+Riesgo central:
+- si no hay disciplina de limites, los modulos se acoplan y deriva en Big Ball of Mud.
+
 ### Cuando evolucionar
 
 Senales fuertes:
@@ -45,6 +58,11 @@ Senales fuertes:
 - ciclos de release bloqueados por dependencias internas
 - equipos con ownership ya separado por dominios
 - requerimientos de aislamiento legal u operativo
+
+Senales criticas en operacion:
+- friccion de despliegue: un dominio frena releases de todos
+- escalabilidad divergente: un modulo consume la mayor parte de CPU/RAM
+- aislamiento de fallos insuficiente: error de un flujo tumba capacidades no relacionadas
 
 Si estas senales no existen, microservicios pueden aumentar complejidad sin retorno.
 
@@ -73,6 +91,51 @@ Si un modulo incumple SLO de forma recurrente y no mejora con optimizacion inter
 tenes evidencia real para considerar extraccion.
 
 Esto evita migraciones por moda y alinea arquitectura con impacto de negocio.
+
+### SLO-driven decomposition (flujo tecnico)
+
+Para extraer con criterio, usa secuencia incremental:
+1. instrumentar modulos con OpenTelemetry y metricas RED por capacidad
+2. identificar hot paths que incumplen p95/error budget de forma recurrente
+3. definir puertos/contratos explicitos entre dominios antes de separar runtime
+4. extraer modulo detras de API gateway con canary y rollback planificado
+
+Regla:
+- sin SLOs, no hay criterio; sin contratos, no hay extraccion segura.
+
+## Arquitectura distribuida objetivo en BuildingOS
+
+Al distribuir servicios, cada componente cumple rol especifico y medible.
+
+| Componente | Rol en el ecosistema |
+| --- | --- |
+| API Gateway | Unifica autenticacion, autorizacion y routing por tenant context |
+| BFF (Backend for Frontend) | Adapta payloads para Web/Mobile y reduce over-fetching |
+| Service Mesh / Discovery | Gestiona comunicacion interna, retries y politicas de resiliencia |
+
+El objetivo no es fragmentar por moda.
+Es aislar responsabilidades para escalar equipo y plataforma con control.
+
+## Multi-tenancy en la era distribuida
+
+Cuando el sistema se distribuye, el aislamiento multi-tenant pasa de DB a red + observabilidad.
+
+Controles obligatorios:
+- propagacion de `tenant_id` en llamadas sync/async entre servicios
+- validacion de tenant context en cada frontera de entrada
+- trazas y logs con `tenant_id`, `trace_id` y `api_version`
+
+### FinOps distribuido por tenant
+
+No alcanza con costo total de plataforma.
+Necesitas atribucion por tenant para decisiones de pricing y capacidad.
+
+Minimos:
+- costo por request/capability agregado por `tenant_id`
+- consumo de IA/colas/almacenamiento por tenant
+- panel de margen por segmento para detectar tenants deficitarios
+
+Sin visibilidad de costo distribuido, escalas trafico pero no rentabilidad.
 
 ## Ciclo de vida del tenant
 
@@ -117,6 +180,18 @@ Toda evolucion significativa debe tener:
 - ventana de evaluacion
 
 Sin gobernanza, la evolucion se convierte en coleccion de cambios inconexos.
+
+## Criterio senior: el costo del salto
+
+Microservicios resuelven problemas de organizacion y escala,
+pero introducen latencia de red, consistencia eventual y carga operativa.
+
+Principio de decision:
+- no rompas monolito modular hasta que el dolor de mantenerlo
+  sea mayor que el dolor de operar un sistema distribuido.
+
+Arquitectura madura no maximiza novedad.
+Maximiza continuidad de negocio con riesgo controlado.
 
 ## Trade-offs y criterios de decision
 
@@ -173,3 +248,19 @@ La causa suele ser confundir cambio tecnico con evolucion arquitectonica.
 - Politicas de mantenimiento preventivo.
 - Gobernanza y mejora continua.
 - Matriz de decision para extraccion de microservicios.
+
+## Conclusion del libro
+
+Este libro recorre una progresion concreta:
+- Nivel 1: fundamentos tecnicos y contratos estables
+- Nivel 2: ingenieria SaaS y aislamiento multi-tenant
+- Nivel 3: resiliencia operativa y escalabilidad distribuida
+- Nivel 4: arquitectura orientada a IA con gobernanza real
+
+La meta final no es "usar mas tecnologia".
+La meta es proteger valor de negocio frente a la entropia tecnica.
+
+Criterio de Arquitecto Moderno:
+- decidir con evidencia,
+- disenar para evolucion,
+- y mantener el dominio por encima del framework o proveedor de turno.

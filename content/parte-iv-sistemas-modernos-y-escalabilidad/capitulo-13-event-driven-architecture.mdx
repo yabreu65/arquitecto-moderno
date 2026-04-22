@@ -40,6 +40,19 @@ Es un modelo de comunicacion que requiere:
 - idempotencia
 - trazabilidad end-to-end
 
+## El problema: acoplamiento temporal
+
+En flujo request-response puro, una accion de negocio queda atada a todo lo que pasa despues.
+
+Ejemplo en BuildingOS ante `water_leak_detected`:
+- guardar incidente
+- notificar tecnico
+- disparar analisis de IA
+- abrir orden de trabajo
+
+Si notificaciones falla y esta en cadena sincrona, la request completa cae.
+EDA corta esa dependencia temporal: el productor publica el hecho y responde.
+
 ## Domain events como contrato
 
 Un domain event representa un hecho del negocio ya ocurrido.
@@ -53,6 +66,25 @@ Regla:
 - nombrar eventos por significado de dominio, no por detalle tecnico.
 
 Si publicas `db_row_inserted`, nadie entiende impacto de negocio.
+
+## Coreografia vs orquestacion
+
+Coreografia:
+- cada servicio consume eventos y decide su reaccion
+- maximiza autonomia y desacoplamiento
+
+Orquestacion:
+- un componente central coordina el flujo completo
+- facilita control cuando hay pasos estrictos y compensaciones
+
+Criterio:
+- eventos de reaccion independiente -> coreografia
+- procesos multi-paso con reglas secuenciales criticas -> orquestacion
+
+En BuildingOS, un evento como `water_leak_detected` suele disparar:
+- `NotificationService` (alerta)
+- `AgentOrchestrator` (evaluacion automatizada)
+- `AuditLogService` (trazabilidad regulatoria)
 
 ## Diseno de eventos
 
@@ -92,6 +124,31 @@ Criterio:
 No elijas por moda.
 Elige por patron de consumo y operacion.
 
+## Implementacion en NestJS: eventos internos vs externos
+
+Regla practica:
+- mismo proceso/modulo: `@nestjs/event-emitter`
+- comunicacion distribuida: broker externo (RabbitMQ o Kafka)
+
+```ts
+@Injectable()
+export class PropertyService {
+  constructor(private readonly eventEmitter: EventEmitter2) {}
+
+  async detectAnomaly(propertyId: string, tenantId: string) {
+    this.eventEmitter.emit("anomaly.detected", {
+      event_type: "anomaly.detected",
+      property_id: propertyId,
+      tenant_id: tenantId,
+      occurred_at: new Date().toISOString(),
+      anomaly_type: "WATER_LEAK",
+    });
+  }
+}
+```
+
+El punto clave no es el framework, es preservar `tenant_id` y metadatos de correlacion.
+
 ## Entrega y consistencia
 
 No existe "exactly once" gratis en sistemas reales.
@@ -100,6 +157,16 @@ Lo comun y pragmatcio es:
 - consumidores idempotentes
 
 Si no diseñas idempotencia, los reintentos te rompen estado.
+
+## Consistencia eventual y UX
+
+Trade-off central de EDA: un modulo puede tardar en reflejar el estado final.
+
+Implicacion para producto:
+- interfaces deben modelar estados como `procesando`, `pendiente`, `confirmado`
+- no prometer sincronismo visual cuando el backend opera asincrono
+
+Si negocio no entiende esto, convierte latencia esperada en "incidente" falso.
 
 ## Observabilidad en EDA
 

@@ -53,6 +53,10 @@ Costos:
 
 Es una gran opcion para equipos con clientes de madurez dispar.
 
+Criterio operativo:
+- excelente para onboarding rapido y debugging directo en logs/CDN
+- aceptas URLs mas "verbosas" a cambio de simplicidad de soporte
+
 ### Versionado por headers
 
 Ejemplo:
@@ -68,6 +72,10 @@ Costos:
 
 Funciona muy bien cuando tenes plataforma API consolidada.
 
+Criterio operativo:
+- escalar multiples versiones sin tocar rutas
+- ideal cuando ya tenes gateway, tracing y tooling de inspeccion maduros
+
 ### Negociacion por content type
 
 Ejemplo conceptual:
@@ -81,6 +89,24 @@ Costos:
 - curva de adopcion y soporte mayor
 
 Suele reservarse para ecosistemas API avanzados.
+
+Criterio operativo:
+- maximo control de representaciones en APIs complejas
+- mayor costo de adopcion para equipos y clientes
+
+## Marco de decision estrategica
+
+No elijas metodo por preferencia personal.
+Elegi por etapa de producto, perfil de clientes y madurez operativa.
+
+| Perfil de empresa | Metodo recomendado | Factor clave |
+| --- | --- | --- |
+| Early-stage (BuildingOS beta) | URI path | Despliegue rapido y onboarding simple |
+| Growth-stage | Header-based | Escalabilidad sin romper rutas |
+| Enterprise/global | Content negotiation | Flexibilidad y compliance de estandares |
+
+Regla:
+- la mejor estrategia es la que tu equipo puede operar con disciplina hoy.
 
 ## Criterio de seleccion por contexto
 
@@ -103,6 +129,62 @@ Politica minima recomendable:
 - definir fecha de retiro (sunset)
 
 Si no hay fechas, la version vieja se vuelve eterna.
+
+### Politica de sunset en headers
+
+Comunicar deprecacion de forma explicita evita sorpresas operativas.
+
+Encabezados recomendados:
+- `Warning: 299 - "This version will be deprecated on 2026-12-31"`
+- `Sunset: Wed, 31 Dec 2026 23:59:59 GMT`
+
+Sin estos headers, la migracion depende de mails o tickets y suele llegar tarde.
+
+### Fallback para version no soportada
+
+Cuando un cliente pide una version inexistente, responder con error guiado reduce friccion:
+
+```json
+{
+  "error": "Version Not Supported",
+  "message": "Requested API version 4 is not supported",
+  "supportedVersions": ["1", "2"],
+  "suggestedVersion": "2"
+}
+```
+
+Esto transforma un corte abrupto en una ruta de recuperacion clara.
+
+## Implementacion en NestJS (referencia practica)
+
+NestJS soporta versionado nativo y permite separar controladores por version.
+
+Configuracion global por URI path:
+
+```ts
+import { VersioningType } from "@nestjs/common";
+
+app.enableVersioning({
+  type: VersioningType.URI,
+  defaultVersion: "1",
+});
+```
+
+Controlador versionado:
+
+```ts
+import { Controller, Get } from "@nestjs/common";
+
+@Controller({ path: "properties", version: "2" })
+export class PropertiesV2Controller {
+  @Get()
+  findAllV2() {
+    return { message: "Datos extendidos de propiedades (v2)" };
+  }
+}
+```
+
+Si el modulo crece, separar por version ayuda a evitar mezclas peligrosas entre contratos.
 
 ## Observabilidad de versiones
 
@@ -131,6 +213,10 @@ Cambios incompatibles comunes:
 
 Regla:
 - si dudas sobre compatibilidad, trata el cambio como breaking y versiona.
+
+Regla senior:
+- evitar versionado menor en API publica (`v1.1`, `v1.2`)
+- priorizar versiones mayores (`v1`, `v2`) para bajar carga cognitiva externa
 
 ## Trade-offs y criterios de decision
 

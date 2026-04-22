@@ -38,7 +38,44 @@ Si queda implicito, aparecen bugs silenciosos y brechas de seguridad.
 Arquitectura robusta define una "fuente de verdad" para resolver tenant y la aplica de manera uniforme.
 No se permite que cada modulo "adivine" tenant con reglas propias.
 
+Objetivo senior:
+- dominio ciego a la mecanica multi-tenant
+- infraestructura con inyeccion automatica de contexto
+- bloqueo temprano de acceso cruzado antes de tocar datos
+
+## Que es el tenant context
+
+El tenant context es un objeto por request que encapsula identidad operativa.
+No es un detalle cosmico: es un contrato de seguridad y trazabilidad.
+
+Responsabilidad:
+- ser unica fuente de verdad durante el ciclo de vida de la peticion
+- evitar que cada capa pase `tenant_id` manualmente
+
+Contrato minimo recomendado:
+- `tenant_id`
+- `user_id`
+- `plan_tier`
+- `permissions` (RBAC/ABAC)
+- `trace_id` (si hay observabilidad distribuida)
+
+Si este contrato no existe, el sistema cae en parameter pollution y decisiones inconsistentes.
+
 ## Resolucion de tenant ID
+
+Antes de inyectar contexto, hay que resolver tenant de forma confiable en el borde.
+Una plataforma madura suele combinar entradas, pero con normalizacion interna unica.
+
+Matriz practica:
+
+| Estrategia | Mecanismo | Caso de uso |
+| --- | --- | --- |
+| Subdomain-based | `tenant1.buildingos.com` | SaaS B2B con branding y separacion por cliente |
+| Header-based | `X-Tenant-Id: <id>` | APIs internas/BFF con gateway confiable |
+| JWT claims | claim `org.id` o `tenant_id` firmado | Estandar moderno para identidad verificable |
+
+Regla de seguridad:
+- si `tenant_id` viene por header externo sin control de borde, NO confiarlo ciegamente.
 
 ### Estrategia por subdominio
 
@@ -102,6 +139,75 @@ Patron recomendado:
 
 Esto reduce errores de propagacion y estandariza auditoria.
 
+### Inyeccion implicita para evitar parameter pollution
+
+El objetivo es no pasar `tenant_id` por cinco capas a mano.
+En NestJS, request-scoped providers permiten encapsular esto sin ensuciar casos de uso.
+
+```ts
+import { Injectable, Scope } from "@nestjs/common";
+
+@Injectable({ scope: Scope.REQUEST })
+export class TenantContext {
+  tenantId!: string;
+  userId!: string;
+  planTier?: string;
+  permissions: string[] = [];
+
+  setContext(input: {
+    tenantId: string;
+    userId: string;
+    planTier?: string;
+    permissions?: string[];
+  }) {
+    this.tenantId = input.tenantId;
+    this.userId = input.userId;
+    this.planTier = input.planTier;
+    this.permissions = input.permissions ?? [];
+  }
+}
+```
+
+```ts
+@Injectable()
+export class PrismaPropertyRepository implements IPropertyRepository {
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly context: TenantContext,
+  ) {}
+
+  async findMany() {
+    return this.prisma.property.findMany({
+      where: { tenantId: this.context.tenantId },
+    });
+  }
+}
+```
+
+El filtro tenant vive en adaptadores de infraestructura, no en dominio.
+
+## Gatekeeper en la capa API
+
+El gatekeeper valida identidad y contexto antes de que la request llegue a DB o IA.
+Es la frontera donde se ejecutan politicas de aislamiento.
+
+Controles minimos:
+- comparar tenant del request con tenant firmado en JWT
+- validar pertenencia usuario-tenant y permisos efectivos
+- bloquear tenant suspendido o fuera de policy
+- registrar auditoria con `tenant_id`, `user_id`, `trace_id`
+
+Resultado:
+- si hay mismatch de tenant, la peticion muere en borde
+- no hay chance de contaminacion cruzada por error de repositorio
+
+### Verified domains para onboarding enterprise
+
+Para clientes enterprise, el dominio corporativo ayuda a automatizar alta de tenant:
+- validas ownership via DNS/TXT
+- mapeas dominio -> `tenant_id` en control plane
+- asignas tenant correcto en login sin pasos manuales frágiles
+
 ## Propagacion en flujos asincronos
 
 No alcanza con request HTTP.
@@ -143,6 +249,14 @@ Puede tener costo de performance si se usa sin criterio.
 
 Criterio:
 - usar request scope en rutas tenant-criticas y medir impacto.
+
+Alternativa para alto trafico:
+- `AsyncLocalStorage` de Node.js permite propagar contexto por cadena async
+- reduce overhead de providers request-scoped en algunos perfiles de carga
+
+Regla practica:
+- empezar por request scope por claridad arquitectonica
+- migrar a `AsyncLocalStorage` cuando tengas evidencia de cuello real en profiling
 
 ### Trade-off 3: una unica estrategia de resolucion vs estrategia hibrida
 

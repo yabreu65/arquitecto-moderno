@@ -144,7 +144,7 @@ La salida es una estrategia hibrida gestionada por control plane.
 
 Combina niveles de aislamiento en una sola plataforma:
 
-- Capa `Pool` (shared): varios tenants en infraestructura compartida con aislamiento por `tenant_id` y RLS.
+- Capa `Pool` (shared): varios tenants en infraestructura compartida con aislamiento por `tenant_id` y RLS, optimizando densidad y costo (FinOps).
 - Capa `Silo` (isolated): tenant con base dedicada para rendimiento y cumplimiento.
 
 Segun el producto, tambien podes usar una capa intermedia `Schema-per-tenant`.
@@ -167,6 +167,18 @@ Metadatos minimos por tenant:
 Cuando entra una request, el backend consulta este catalogo en milisegundos y decide a que topologia enrutar.
 
 Sin catalogo, el routing termina hardcodeado y fragil.
+
+### Gatekeeper API como punto de control
+
+El Gatekeeper API es la frontera de entrada del tenant context.
+Antes de ejecutar logica de negocio:
+
+- valida identidad firmada (JWT) y pertenencia tenant-usuario
+- cruza `tenant_id` con el Tenant Catalog
+- decide routing (`POOL`/`SCHEMA`/`SILO`) y adjunta contexto confiable
+
+Si hay mismatch de tenant o policy invalida, bloquea en borde.
+Esto evita que errores aguas abajo alcancen DB o servicios de IA con contexto incorrecto.
 
 ### Implementacion en NestJS: dynamic connection router
 
@@ -224,6 +236,19 @@ Minimos no negociables:
 - tagging/FinOps por tenant para trazabilidad de costo
 
 Sin estos guardrails, la hibridacion se transforma en caos operativo.
+
+### Conexion con escalabilidad y resiliencia (Nivel 3)
+
+El control plane de datos no vive aislado del resto de la plataforma.
+Su valor real aparece cuando se integra con arquitectura distribuida:
+
+- Capitulo 13 (EDA): eventos tenant-scoped deben conservar `tenant_id` desde origen.
+- Capitulo 14 (colas/workers): retries e idempotencia deben respetar contexto de tenant.
+- Capitulo 15 (observabilidad): trazas y metricas RED por tenant permiten detectar degradacion por segmento.
+
+Regla:
+- no duplicar toda la estrategia de resiliencia en este capitulo,
+- enlazar criterios para que aislamiento de datos y operacion distribuida hablen el mismo idioma.
 
 ## Trade-offs y criterios de decision
 

@@ -36,7 +36,18 @@ RAG tiene tres zonas sensibles:
 
 Si cualquiera de esas zonas pierde aislamiento, el prompt final queda contaminado.
 
-## Arquitecturas de aislamiento
+## 16.1 Aislamiento en bases de datos vectoriales
+
+El desafio principal no es la similitud semantica.
+Es garantizar que cada consulta vea solo conocimiento autorizado por `tenant_id`.
+
+Dos estrategias base:
+- `namespaces` o indices dedicados por tenant (aislamiento logico fuerte)
+- indice compartido con metadata filtering estricto por `tenant_id`
+
+Regla:
+- namespaces suelen encajar mejor en tenants premium/enterprise
+- metadata filtering reduce costo pero exige disciplina total en filtros y auditoria
 
 ### Silo
 
@@ -89,18 +100,23 @@ Criterio:
 No es batalla de herramientas.
 Es alineacion con tu contexto operativo.
 
-## Retrieval seguro por tenant
+## 16.2 Pipeline de autorizacion de IA
 
 Reglas minimas:
 - filtro obligatorio por `tenant_id`
 - metadatos inmutables del documento
 - validacion cruzada del contexto antes de construir prompt
 
+Principio operativo:
+- `pre-filtering` obligatorio en retrieval enterprise
+- `post-filtering` solo como defensa secundaria y monitoreada
+
 Patron recomendado:
 1. resolver `tenant context`
-2. ejecutar retrieval scopeado por tenant
-3. auditar ids de chunks recuperados
-4. construir prompt con trazabilidad de fuentes
+2. resolver permisos efectivos del actor (RBAC/ABAC)
+3. ejecutar retrieval scopeado por tenant y `doc_id` permitido
+4. auditar ids de chunks recuperados
+5. construir prompt con trazabilidad de fuentes
 
 ## NUEVO 16.3 - Gobernanza y autorizacion en IA: pre-filtering vs post-filtering
 
