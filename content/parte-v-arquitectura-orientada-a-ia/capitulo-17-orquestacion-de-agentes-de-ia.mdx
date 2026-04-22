@@ -112,6 +112,128 @@ Estrategia:
 - memoria larga curada por caso de uso
 - limites de contexto por etapa
 
+## NUEVO 17.3 - Human-in-the-loop y checkpointing en agentes
+
+### El problema: riesgo de autonomia pura
+
+Los flujos multi-agente tradicionales suelen ejecutarse hasta completar tarea o fallar.
+En SaaS B2B eso no alcanza por tres razones:
+
+- irreversibilidad: pagos, cambios de infraestructura o notificaciones legales no tienen undo real
+- trazabilidad: el cliente enterprise necesita saber quien aprobo cada paso critico
+- alucinaciones criticas: un razonamiento incorrecto puede disparar acciones de alto impacto
+
+Si la arquitectura no contempla esto, el sistema es rapido pero no gobernable.
+
+### Patron HITL: interrupcion programada en la maquina de estados
+
+Human-in-the-loop (HITL) no es solo un modal de confirmacion.
+Es una interrupcion explicita del flujo en el orquestador de agentes.
+
+Flujo base:
+- input -> razonamiento IA -> accion ejecutada
+
+Flujo con HITL:
+- input -> razonamiento IA -> interrupcion HITL -> aprobacion humana -> accion ejecutada
+
+La diferencia clave es que la aprobacion humana se vuelve parte del contrato del sistema, no un parche de UI.
+
+### Variantes de intervencion
+
+- approval: el agente propone accion y espera aprobado/rechazado
+- editing: el humano corrige plan, mensaje o parametros antes de ejecutar
+- input: el agente pausa porque falta un dato que solo el tenant conoce
+
+No todos los flujos necesitan las tres variantes. Se activan por politica segun criticidad.
+
+### Checkpointing: persistencia de estado para flujos pausados
+
+Para pausar y retomar horas o dias despues, el orquestador necesita checkpointing.
+
+Checkpointing significa guardar snapshot completo del estado:
+- memoria de corto plazo
+- historial de mensajes
+- variables de contexto
+- proximo nodo/step del flujo
+
+Arquitectura SaaS:
+- ese estado debe aislarse por `tenant_id`
+- workers de otros tenants no pueden leer ni retomar ese hilo
+
+Sin checkpointing, HITL se vuelve inconsistente y fragil operativamente.
+
+### Patron arquitectonico: servicio de estado de agentes
+
+En lugar de pausar logica dispersa en cada agent tool, centraliza en un servicio de estado.
+
+Responsabilidades:
+- persistir checkpoint por `thread_id` y `tenant_id`
+- marcar estado `awaiting_human_intervention`
+- registrar evidencia en audit log
+- reanudar flujo desde el mismo punto tras aprobacion
+
+### Implementacion conceptual en NestJS
+
+```ts
+import { Injectable } from "@nestjs/common";
+import { randomUUID } from "node:crypto";
+
+@Injectable()
+export class AgentOrchestrator {
+  async executeComplexTask(tenantId: string, task: string) {
+    const threadId = randomUUID();
+
+    const state = await this.langGraphRunner.run(task, {
+      configurable: { thread_id: threadId },
+      checkpointService: this.tenantCheckpointService,
+    });
+
+    if (state.nextStep === "APPLY_PAYMENT") {
+      await this.auditLog.log(tenantId, "IA_PAUSED", "Esperando aprobacion para pago");
+      return { status: "pending_human_intervention", threadId };
+    }
+
+    return { status: "completed", threadId };
+  }
+
+  async resumeTask(tenantId: string, threadId: string, approval: boolean) {
+    await this.auditLog.log(
+      tenantId,
+      "IA_RESUMED",
+      approval ? "Aprobado por humano" : "Rechazado por humano",
+    );
+
+    return this.langGraphRunner.resume(threadId, { approval });
+  }
+}
+```
+
+### Ejemplo real: BuildingOS
+
+Flujo de mantenimiento:
+1. agente inspector analiza foto de fuga
+2. agente cotizador propone proveedor por USD 800
+3. politica detecta que supera limite del tenant (USD 500)
+4. se crea checkpoint y se dispara notificacion al property manager
+5. manager aprueba
+6. el flujo se reanuda desde el checkpoint y agenda visita tecnica
+
+Esto combina autonomia de IA con control humano auditable.
+
+### Criterio senior: latencia vs seguridad
+
+HITL agrega friccion y tiempo de espera. Eso es esperable.
+
+La regla no es poner HITL en todo.
+La regla es activarlo solo en acciones con efectos externos o irreversibles:
+
+- escrituras criticas en DB
+- llamadas a APIs de terceros con impacto real
+- transacciones financieras
+- comunicaciones legales o regulatorias
+
+Cada checkpoint y cada aprobacion deben ir al audit log con evidencia contextual.
+
 ## Trade-offs y criterios de decision
 
 ### Trade-off 1: autonomia de agentes vs gobernanza
@@ -145,6 +267,8 @@ Criterio:
 - No controlar loops de ejecucion.
 - Falta de trazabilidad por decision intermedia.
 - Medir solo calidad textual y no costo/seguridad.
+- Aplicar HITL sin checkpoint persistente por tenant.
+- No auditar quien aprobo/rechazo acciones criticas.
 
 La raiz es diseñar agentes como demo y no como componente de plataforma.
 
@@ -159,6 +283,8 @@ La raiz es diseñar agentes como demo y no como componente de plataforma.
 - [ ] Estado/memoria estan gobernados por politica.
 - [ ] Flujos criticos tienen validacion adicional.
 - [ ] Se monitorean costo, latencia y tasa de error por agente.
+- [ ] Checkpoints se persisten con aislamiento por `tenant_id`.
+- [ ] Aprobaciones humanas quedan auditadas con evidencia.
 
 ## Estructura lista para expandir
 

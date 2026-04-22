@@ -1,158 +1,242 @@
 ---
-title: Capitulo 15 - Resiliencia y Observabilidad
-description: Circuit breakers, rate limiting y OpenTelemetry para operar en produccion.
+title: Capitulo 15 - Infraestructura y Ciclo de Vida
+description: Automatizacion del tenant lifecycle y gobernanza de infraestructura con IaC.
 ---
 
-# Capitulo 15 - Resiliencia y Observabilidad
+# Capitulo 15 - Infraestructura y Ciclo de Vida
 
 ## Contexto
 
-Escalar es facil; escalar sin romper es otra historia.
-Resiliencia y observabilidad son capacidades obligatorias, no decoracion tecnica.
+Escalar SaaS no es solo agregar pods.
+Es operar de forma consistente el ciclo de vida completo de cada tenant.
 
-Cuando el sistema crece, los fallos dejan de ser excepcion.
-Pasan a ser parte normal de la operacion.
+En entornos enterprise, el riesgo no esta solo en caidas.
+Tambien esta en procesos manuales de provison, cambios de plan, migraciones y offboarding.
 
-La diferencia entre plataforma madura y plataforma fragil no es evitar toda falla.
-Es detectar rapido, contener impacto y recuperar sin improvisar.
+Si ese ciclo depende de operaciones artesanales, la plataforma no escala aunque el codigo este bien.
 
 ## Que aprendera el lector
 
-- Circuit breakers y rate limiting.
-- Tracing, logs y metricas con OpenTelemetry.
-- Como transformar telemetria en decisiones operativas.
-- Como definir SLI/SLO en flujos criticos de negocio.
-- Como diseñar degradacion elegante bajo presion.
+- Como modelar tenant lifecycle como flujo operativo automatizable.
+- Diferencia entre control plane y data plane para operaciones SaaS.
+- Como usar IaC para provisionar infraestructura reproducible.
+- Como aplicar Terraform/CDK en onboarding y offboarding de tenants.
+- Que guardrails necesita una plataforma para evitar drift operativo.
 
 ## Introduccion tecnica
 
-Si no medimos latencia, errores y saturacion por flujo de negocio,
-solo reaccionamos tarde cuando el usuario ya sufrio impacto.
+Infraestructura moderna para SaaS debe tratarse como codigo.
+No como conjunto de clicks en consola.
 
-Resiliencia sin observabilidad es ceguera.
-Observabilidad sin accion es decoracion.
+IaC permite:
+- repetibilidad
+- auditoria de cambios
+- rollback controlado
+- consistencia entre entornos
 
-## Circuit breakers
+Sin IaC, cada tenant se vuelve una excepcion.
 
-Circuit breaker protege tu sistema cuando una dependencia falla o se degrada.
+## Tenant lifecycle como arquitectura
 
-Estados clasicos:
-- closed
-- open
-- half-open
+Estados tipicos:
+- `requested`
+- `provisioning`
+- `active`
+- `suspended`
+- `offboarding`
+- `archived`
 
-Beneficio:
-- evita cascadas de timeout
-- preserva recursos locales
-- permite fallback controlado
+Cada transicion debe tener validaciones, eventos y ownership.
 
-Sin circuit breaker, un servicio caido puede arrastrar todo el ecosistema.
+Si no defines estados, el soporte y operaciones trabajan a ciegas.
 
-## Rate limiting
+## Control plane vs data plane
 
-Rate limiting no es castigo al cliente.
-Es control de capacidad para sostener estabilidad.
+Control plane:
+- decide y orquesta estados del tenant
+- gestiona configuracion, planes y politicas
 
-En multi-tenant, conviene modelar limites por tenant:
-- evita que un tenant ruidoso degrade a todos
-- permite planes diferenciados por contrato
+Data plane:
+- ejecuta trafico y operaciones funcionales del producto
+
+Separar estos planos reduce acoplamiento y mejora gobernanza.
+
+## IaC en SaaS enterprise
+
+IaC no es opcional cuando el negocio exige trazabilidad y velocidad.
+
+Casos concretos:
+- provision de recursos por tenant tier
+- gestion de secretos por entorno
+- networking y politicas de acceso
+- observabilidad base por stack
 
 Regla:
-- limites claros + respuesta explicita (`429`) + politica documentada.
+- todo cambio estructural debe pasar por version control y review.
 
-## Observabilidad con OpenTelemetry
+## NUEVO 15.3 - Automatizacion del Tenant Lifecycle con IaC (Terraform/CDK)
 
-### Tres pilares operativos
+### El problema: el abismo de la configuracion manual
 
-- trazas: seguimiento de requests y dependencias
-- metricas: salud cuantitativa (latencia, errores, saturacion)
-- logs: contexto explicativo de eventos
+Cuando crece el nivel de aislamiento (silo o estrategia hibrida), la operacion manual explota.
 
-OpenTelemetry permite estandarizar instrumentacion entre servicios.
+Onboarding manual implica crear a mano:
+- bucket de documentos
+- recursos de datos
+- namespaces vectoriales
+- secretos y permisos
 
-### Correlacion multi-tenant
+Consecuencias:
+- drift por diferencias entre tenants
+- fallos impredecibles por permisos incompletos
+- costo oculto de recursos huerfanos
+- riesgo de incumplimiento en offboarding
 
-Toda telemetria relevante deberia incluir:
-- `trace_id`
-- `tenant_id`
-- `service_name`
-- `operation`
+### Arquitectura del control plane de aprovisionamiento
 
-Sin `tenant_id`, no podes entender impacto por cliente ni priorizar incidentes correctamente.
+El control plane orquesta herramientas de IaC segun eventos de negocio.
 
-## SLI/SLO para arquitectura
+Flujo tecnico recomendado:
+1. billing confirma alta/pago de tenant
+2. backend publica evento de provisioning
+3. worker o runner ejecuta stack IaC parametrizado con `tenant_id`
+4. al finalizar, registra endpoints y secretos en tenant catalog
+5. data plane enruta trafico segun esa configuracion
 
-No alcanza con "la app anda".
-Necesitas objetivos claros:
-- SLI: indicador (latencia p95, tasa de error)
-- SLO: objetivo (por ejemplo, 99.9% solicitudes < 300ms)
+Esto convierte eventos de negocio en cambios reales de infraestructura, de forma auditable.
 
-Estos objetivos guian decisiones de capacity planning y prioridades tecnicas.
+### Terraform vs CDK (criterio de seleccion)
 
-## Degradacion elegante
+| Caracteristica | Terraform (HCL) | CDK/Pulumi (TypeScript) |
+| --- | --- | --- |
+| Paradigma | Declarativo (estado deseado) | Imperativo (codigo) |
+| Ventaja principal | Estandar de mercado, multi-cloud | Mismo lenguaje que backend NestJS |
+| Mejor fit | Stacks estables y repetibles | Logica condicional compleja |
+| Riesgo tipico | Abstracciones complejas en modulos | Acoplar demasiado IaC con app code |
 
-Cuando una dependencia falla, no siempre hay que devolver error total.
+Regla de arquitecto:
+- elegi por skill del equipo y modelo operativo, no por hype.
 
-Opciones:
-- respuesta parcial
-- fallback a datos cacheados
-- cola para procesamiento diferido
+### Implementacion conceptual en BuildingOS (CDK)
 
-Objetivo:
-- mantener experiencia util aun en modo degradado.
+```ts
+import * as s3 from "aws-cdk-lib/aws-s3";
+import { RemovalPolicy, Stack, Tags } from "aws-cdk-lib";
+import { Construct } from "constructs";
+
+export class TenantInfrastructureStack extends Stack {
+  constructor(scope: Construct, id: string, props: { tenantId: string }) {
+    super(scope, id);
+
+    const bucket = new s3.Bucket(this, `TenantBucket-${props.tenantId}`, {
+      encryption: s3.BucketEncryption.S3_MANAGED,
+      removalPolicy: RemovalPolicy.RETAIN,
+      autoDeleteObjects: false,
+    });
+
+    Tags.of(bucket).add("TenantID", props.tenantId);
+  }
+}
+```
+
+La idea no es el bucket en si.
+La idea es que todo recurso quede trazable y gobernado por `tenant_id`.
+
+### Offboarding seguro y limpieza automatica
+
+Offboarding no es solo "dar de baja usuario".
+Es ejecutar una politica de lifecycle:
+1. revocar accesos y secretos
+2. aplicar retencion temporal segun compliance
+3. destruir recursos elegibles via IaC
+4. registrar evidencia de cierre
+
+Si esto no es automatico, aparecen costos zombie y riesgos legales.
+
+## Guardrails operativos
+
+Minimos para evitar drift:
+- policy checks en CI
+- naming conventions estandar
+- tagging obligatorio por tenant y entorno
+- deteccion de drift periodica
+- runbooks de rollback
+
+Sin guardrails, IaC tambien puede degradarse.
+
+## SLOs operativos para lifecycle
+
+Tambien conviene definir SLOs del plano operativo:
+- tiempo maximo de onboarding de tenant
+- tasa de exito de pipelines IaC
+- tiempo de remediacion de drift
+- tiempo de offboarding completo
+
+Sin SLOs, la operacion escala por percepcion y no por evidencia.
+
+### Criterio del arquitecto senior
+
+No automatices por moda.
+Con pocos tenants, cierto nivel manual puede ser aceptable.
+Pero si el objetivo es escalar a long-tail enterprise, la automatizacion del tenant lifecycle define margen y velocidad.
+
+Meta practica:
+- acercar el costo marginal de onboarding a cero horas de ingenieria manual.
 
 ## Trade-offs y criterios de decision
 
-### Trade-off 1: proteccion agresiva vs experiencia de usuario
+### Trade-off 1: automatizacion total vs complejidad inicial
 
-Rate limiting estricto protege infraestructura.
-Tambien puede bloquear uso legitimo.
-
-Criterio:
-- limites calibrados por comportamiento real y segmentacion de tenant.
-
-### Trade-off 2: telemetria completa vs costo operacional
-
-Instrumentar todo sube visibilidad.
-Tambien sube costo de storage/ingesta.
+Automatizar todo al inicio puede ser excesivo.
+Automatizar nada bloquea crecimiento.
 
 Criterio:
-- priorizar flujos criticos y alta cardinalidad con gobernanza.
+- automatizar primero caminos repetitivos de mayor riesgo operativo.
 
-### Trade-off 3: resiliencia local vs complejidad de fallback
+### Trade-off 2: Terraform vs CDK
 
-Mas fallback puede mejorar disponibilidad.
-Tambien aumenta ramas de comportamiento.
+Terraform:
+- ecosistema amplio y estandar de mercado
+
+CDK:
+- expresividad en lenguajes de programacion
 
 Criterio:
-- fallback solo donde el valor de continuidad supera complejidad adicional.
+- elegir por habilidades del equipo y stack de proveedores.
+
+### Trade-off 3: velocidad de onboarding vs controles de cumplimiento
+
+Onboarding muy rapido sin validaciones aumenta riesgo.
+
+Criterio:
+- gates de seguridad/compliance en pipeline de provision.
 
 ## Errores comunes (y por que pasan)
 
-- Monitorear infraestructura pero no flujos de negocio.
-- Trazas sin correlacion entre servicios.
-- Alertas sin accion definida.
-- Circuit breaker mal calibrado (abre tarde o siempre).
-- No incluir `tenant_id` en telemetria.
+- Provision manual fuera de IaC.
+- No modelar estados del tenant explícitamente.
+- No limpiar recursos en offboarding.
+- Falta de tagging por tenant.
+- Ausencia de deteccion de drift.
 
-La causa central: operar con metricas tecnicas aisladas del producto.
+La causa tipica es tratar operaciones como soporte y no como parte de arquitectura.
 
 ## Checklist de arquitectura para este capitulo
 
-- [ ] Dependencias criticas usan circuit breakers.
-- [ ] Existen politicas de rate limiting por tenant cuando aplica.
-- [ ] Telemetria usa trazas, metricas y logs correlacionados.
-- [ ] `tenant_id` aparece en observabilidad relevante.
-- [ ] SLI/SLO estan definidos para flujos core.
-- [ ] Hay mecanismos de degradacion elegante documentados.
-- [ ] Alertas tienen owner y playbook asociado.
-- [ ] Se revisan p95/p99, no solo promedios.
-- [ ] Se ejecutan pruebas de resiliencia periodicas.
+- [ ] Tenant lifecycle tiene estados y transiciones definidas.
+- [ ] Control plane y data plane estan separados.
+- [ ] Provision y cambios estructurales pasan por IaC.
+- [ ] Pipeline IaC tiene policy checks y review.
+- [ ] Recursos incluyen tagging por tenant y entorno.
+- [ ] Offboarding automatiza retencion y limpieza.
+- [ ] Existe deteccion de drift y plan de remediacion.
+- [ ] Runbooks de rollback estan documentados.
+- [ ] Costos por tenant son trazables.
 
 ## Estructura lista para expandir
 
-- Patrones de proteccion por endpoint.
-- Modelo de trazas distribuidas.
-- Tableros de salud por dominio.
-- Protocolo de respuesta a incidentes.
-- Estrategia de SLO por segmento de tenant.
+- Modelo de estados del tenant lifecycle.
+- Blueprint de control plane.
+- Pipeline IaC con validaciones de seguridad.
+- Runbook de onboarding/offboarding enterprise.
+- Politica de tagging, drift y costo por tenant.

@@ -1,9 +1,9 @@
 ---
-title: Capitulo 12 - Seguridad y Auditoria Enterprise
-description: Audit logging, cumplimiento y cifrado para entornos B2B.
+title: Capitulo 12 - Seguridad y Observabilidad Enterprise
+description: Audit logging, Postgres RLS y OpenTelemetry tenant-aware en entornos B2B.
 ---
 
-# Capitulo 12 - Seguridad y Auditoria Enterprise
+# Capitulo 12 - Seguridad y Observabilidad Enterprise
 
 ## Contexto
 
@@ -66,6 +66,17 @@ Prioridad alta:
 No todo evento debe ser audit log.
 Pero todo evento de alto impacto debe serlo.
 
+## Tenant isolation con Postgres RLS
+
+RLS en Postgres permite imponer aislamiento en capa de datos.
+
+Regla de oro:
+- toda tabla tenant-scoped con politica RLS explicita
+- sesion de DB con contexto seguro de `tenant_id`
+
+Esto agrega defensa en profundidad:
+si una query en aplicacion olvida filtro, RLS puede bloquear el acceso cruzado.
+
 ## Cifrado de datos en reposo
 
 ### Cifrado en DB y storage
@@ -110,6 +121,114 @@ Necesitas:
 - playbooks de incidente
 
 Tiempo de deteccion y tiempo de respuesta importan tanto como prevenir.
+
+## NUEVO 12.3 - Observabilidad tenant-aware con OpenTelemetry
+
+La observabilidad tradicional (CPU, memoria, latencia media por servicio) no alcanza en SaaS multi-tenant.
+Los promedios mienten.
+
+Si el 99% de tenants responde en 100ms pero tu tenant premium cae a 5s, la plataforma puede "verse sana" y aun asi estar fallando donde mas duele el negocio.
+
+### Pilar 1: trazabilidad con contexto propagado
+
+OpenTelemetry debe unificar trazas, metricas y logs en todos los servicios.
+
+Regla operativa:
+- cada request de entrada genera `trace_id`
+- el `tenant_id` viaja como contexto (baggage/atributos)
+- la correlacion se mantiene en API, workers, colas y DB
+
+`trace_id` y correlacion no son lo mismo:
+- `trace_id` sigue el arbol tecnico de una peticion
+- `correlation_id` conecta eventos de negocio y workflows cruzados
+
+Para soporte enterprise, ambos deben convivir.
+
+### Pilar 2: metricas RED y USE por tenant
+
+No midas solo API global.
+Medi por tenant con tags:
+
+- RED: requests, errors, duration por `tenant_id`
+- USE: utilizacion, saturacion y errores por recurso compartido
+
+Esto permite responder preguntas reales:
+- que tenant esta degradado ahora?
+- que release afecto a que segmento?
+- donde esta el cuello: app, DB, queue o worker?
+
+### Pilar 3: deteccion del noisy neighbor
+
+Noisy neighbor = tenant que consume recursos desproporcionados y degrada a los demas.
+
+Deteccion:
+- latencia p95/p99 por tenant
+- consumo de DB por `tenant_id`
+- jobs por tenant en cola
+
+Mitigacion automatizable:
+- rate limits por tenant
+- circuit breakers segmentados
+- throttling de reportes pesados
+
+Sin observabilidad tenant-aware, esta mitigacion llega tarde.
+
+### Implementacion en NestJS (interceptor de telemetria)
+
+```ts
+import { CallHandler, ExecutionContext, Injectable, NestInterceptor } from "@nestjs/common";
+import { Observable } from "rxjs";
+import { context, propagation, trace } from "@opentelemetry/api";
+
+@Injectable()
+export class TenantTelemetryInterceptor implements NestInterceptor {
+  intercept(contextRef: ExecutionContext, next: CallHandler): Observable<unknown> {
+    const request = contextRef.switchToHttp().getRequest();
+    const tenantId = request.user?.tenantId ?? request.headers["x-tenant-id"] ?? "anonymous";
+    const activeSpan = trace.getActiveSpan();
+
+    if (activeSpan) {
+      activeSpan.setAttribute("tenant.id", tenantId);
+      activeSpan.setAttribute("http.method", request.method);
+      activeSpan.setAttribute("http.route", request.route?.path ?? "unknown");
+    }
+
+    const baggage = propagation.createBaggage({
+      "tenant.id": { value: String(tenantId) },
+    });
+
+    return context.with(propagation.setBaggage(context.active(), baggage), () => next.handle());
+  }
+}
+```
+
+Importante: el `tenant_id` ideal viene de contexto autenticado (JWT/tenant context), no solo de headers sin validar.
+
+### FinOps: costo por tenant
+
+Observabilidad no es solo incident response.
+Tambien es economia de plataforma.
+
+Al etiquetar por `tenant_id`:
+- queries de DB
+- mensajes de cola
+- ejecuciones de workers
+- llamadas a IA/terceros
+
+podes estimar costo real por tenant y proteger margen.
+
+Guardrails recomendados:
+- presupuesto de costo por tenant
+- alertas de desviacion
+- politicas de throttling por plan
+
+### Criterio del arquitecto senior
+
+La observabilidad tenant-aware es el sistema nervioso del SaaS.
+No la uses solo para errores.
+Taggea tambien exito, latencia y consumo por tenant.
+
+Solo asi podes cumplir SLOs enterprise por cliente y no por promedio global.
 
 ## Trade-offs y criterios de decision
 

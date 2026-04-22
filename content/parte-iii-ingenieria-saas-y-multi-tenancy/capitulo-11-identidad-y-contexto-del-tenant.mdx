@@ -1,6 +1,6 @@
 ---
 title: Capitulo 11 - Identidad y Contexto del Tenant
-description: Resolucion de tenant ID e inyeccion de contexto en NestJS.
+description: Resolucion de tenant ID por subdominios y verified domains en NestJS.
 ---
 
 # Capitulo 11 - Identidad y Contexto del Tenant
@@ -52,6 +52,19 @@ Ventajas:
 Riesgos:
 - validacion insuficiente de dominio
 - edge cases en entornos internos o custom domains
+
+### Estrategia por verified domains
+
+En entornos enterprise, muchos clientes exigen dominio propio (`docs.cliente.com`).
+Para sostener seguridad y gobernanza:
+
+- registrar dominio verificado por tenant
+- validar ownership criptograficamente (DNS/TXT)
+- mapear dominio -> `tenant_id` en control plane
+
+Beneficio:
+- onboarding enterprise robusto
+- menor riesgo de suplantacion por dominio
 
 ### Estrategia por path
 

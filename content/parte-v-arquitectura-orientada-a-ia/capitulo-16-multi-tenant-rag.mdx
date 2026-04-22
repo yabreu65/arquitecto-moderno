@@ -102,6 +102,120 @@ Patron recomendado:
 3. auditar ids de chunks recuperados
 4. construir prompt con trazabilidad de fuentes
 
+## NUEVO 16.3 - Gobernanza y autorizacion en IA: pre-filtering vs post-filtering
+
+En un pipeline RAG tradicional, el motor vectorial optimiza similitud semantica, no autorizacion.
+Como arquitectos, tenemos que imponer acceso antes de que los datos lleguen al LLM.
+
+### Aislamiento vectorial: base de la gobernanza
+
+Antes de discutir filtros, definimos donde viven los vectores:
+
+- `Silo` (namespace o indice por tenant): maximo aislamiento, recomendado para tenants premium.
+- `Pool` (indice compartido + metadata): mas eficiente en costo, pero con mayor disciplina de filtros.
+- `Bridge` (hibrido): pool para base general, silo para segmentos sensibles.
+
+La estrategia de filtrado hereda el riesgo del modelo de aislamiento.
+
+### Estrategia A: Pre-filtering (estandar enterprise)
+
+El sistema decide que documentos puede ver el actor antes de consultar el vector store.
+
+Flujo tecnico:
+1. Usuario envía consulta.
+2. Servicio RBAC/ABAC resuelve permisos por `tenant_id`.
+3. Se construye filtro estricto por metadata (`tenant_id`, `doc_id`, `status`, etc.).
+4. Se consulta vector DB con ese filtro desde el inicio.
+
+Ejemplo conceptual:
+
+```ts
+query(vector, {
+  filter: {
+    tenant_id: "org_123",
+    doc_id: { $in: allowedIds },
+    status: "published",
+  },
+});
+```
+
+Problema que resuelve:
+- el motor no "mira" vectores prohibidos, reduciendo riesgo de fuga en retrieval.
+
+Trade-off:
+- mayor carga inicial cuando el set permitido es muy grande.
+
+### Estrategia B: Post-filtering (rapida pero riesgosa)
+
+La busqueda se ejecuta primero y el filtrado de autorizacion se aplica despues.
+
+Flujo tecnico:
+1. Recuperas top-K por similitud sin contexto fuerte.
+2. En capa de aplicacion descartas resultados no autorizados.
+
+Riesgo critico:
+- over-fetching: los top-K pueden venir de otros tenants y dejar respuesta vacia o sesgada aunque existan datos validos.
+
+Regla de arquitectura:
+- no usar post-filtering como barrera principal en multi-tenant enterprise.
+- si se usa, que sea capa secundaria con monitoreo y pruebas de leakage.
+
+### Patron Gatekeeper API para BuildingOS
+
+No permitimos que el orquestador de IA consulte directo al vector store.
+Definimos una capa Gatekeeper que centraliza:
+
+- autenticacion y autorizacion
+- inyeccion de `tenant_id`
+- politicas de filtrado
+- trazabilidad (`trace_id`, fuentes y decisiones)
+
+Ventaja:
+- si cambiamos de Pinecone a PGVector, la gobernanza no cambia.
+
+### Implementacion de referencia en NestJS (Interceptor)
+
+```ts
+import {
+  CallHandler,
+  ExecutionContext,
+  Injectable,
+  NestInterceptor,
+} from "@nestjs/common";
+import { Observable } from "rxjs";
+
+@Injectable()
+export class RagSecurityInterceptor implements NestInterceptor {
+  intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
+    const request = context.switchToHttp().getRequest();
+    const tenantId = request.user.tenantId;
+
+    request.body.vectorFilter = {
+      tenant_id: tenantId,
+      status: "published",
+    };
+
+    return next.handle();
+  }
+}
+```
+
+El objetivo no es confiar en que el servicio de IA "se acuerde" de filtrar.
+El objetivo es forzar controles de seguridad por defecto.
+
+### Tabla comparativa
+
+| Caracteristica | Pre-filtering | Post-filtering |
+| --- | --- | --- |
+| Seguridad | Alta: datos no autorizados no se recuperan | Baja: riesgo de leakage y vacios |
+| Latencia | Mayor costo inicial en retrieval | Menor retrieval, mayor descarte app |
+| Uso en SaaS | Recomendado/obligatorio en enterprise | Solo casos internos acotados |
+| Complejidad | Mayor coordinacion de metadatos/permisos | Mas simple de implementar |
+
+Criterio de arquitecto senior:
+- tratar embeddings como datos sensibles;
+- reforzar aislamiento en motor (silo o RLS/metadata estricta) y en aplicacion (pre-filtering + gatekeeper).
+
 ## Evaluacion de calidad y leakage
 
 No alcanza con medir "respuesta correcta".

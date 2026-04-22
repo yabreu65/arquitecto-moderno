@@ -255,6 +255,8 @@ const chapters = [
       "rls",
       "tenant_id",
       "postgres",
+      "control plane",
+      "hibrid",
     ],
   },
   {
@@ -297,6 +299,7 @@ const chapters = [
       "compliance",
       "trace_id",
       "retencion",
+      "opentelemetry",
     ],
   },
   {
@@ -354,12 +357,12 @@ const chapters = [
       "## Estructura lista para expandir",
     ],
     requiredTerms: [
-      "circuit",
-      "rate limiting",
-      "opentelemetry",
-      "sli",
+      "iac",
+      "terraform",
+      "cdk",
+      "tenant lifecycle",
+      "control plane",
       "slo",
-      "tenant_id",
     ],
   },
   {
@@ -381,6 +384,8 @@ const chapters = [
       "pool",
       "bridge",
       "leakage",
+      "pre-filtering",
+      "post-filtering",
     ],
   },
   {
@@ -402,6 +407,8 @@ const chapters = [
       "agente",
       "tool",
       "tenant",
+      "human-in-the-loop",
+      "checkpoint",
     ],
   },
   {

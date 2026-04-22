@@ -1,9 +1,9 @@
 ---
-title: Capitulo 20 - Evolucion y Mantenimiento
+title: Capitulo 20 - Evolucion y Estrategia
 description: Del monolito modular a microservicios y ciclo de vida del tenant.
 ---
 
-# Capitulo 20 - Evolucion y Mantenimiento
+# Capitulo 20 - Evolucion y Estrategia
 
 ## Contexto
 
@@ -58,6 +58,21 @@ Patron pragmatcio:
 5. retirar dependencias antiguas
 
 Evitar corte big-bang salvo casos excepcionales.
+
+## Transicion basada en SLOs
+
+Migrar arquitectura sin objetivo medible es una apuesta.
+
+Usa SLOs para decidir cuando extraer servicios:
+- latencia p95 de flujos criticos
+- tasa de error por dominio
+- disponibilidad por capability
+- tiempo de recuperacion (MTTR)
+
+Si un modulo incumple SLO de forma recurrente y no mejora con optimizacion interna,
+tenes evidencia real para considerar extraccion.
+
+Esto evita migraciones por moda y alinea arquitectura con impacto de negocio.
 
 ## Ciclo de vida del tenant
 

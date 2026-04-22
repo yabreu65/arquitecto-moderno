@@ -1,6 +1,6 @@
 # El Arquitecto Moderno
 
-Diseno de Plataformas SaaS Escalables y Sistemas de IA Agentica.
+Diseno de Plataformas SaaS Enterprise y Ecosistemas de IA Agentica.
 
 Este repositorio contiene el libro tecnico en formato documentacion, construido con Next.js + Nextra + MDX.
 

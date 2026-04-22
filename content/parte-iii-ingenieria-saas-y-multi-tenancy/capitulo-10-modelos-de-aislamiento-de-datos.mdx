@@ -121,12 +121,71 @@ Minimos para usarlo bien:
 No te cases dogmaticamente con el primer modelo.
 Diseña desde el inicio para evolucionar.
 
-Patron pragmatcio:
+Patron pragmatico:
 1. arrancar con shared-tables bien gobernado
 2. mover tenants premium a schema-per-tenant o database-per-tenant cuando negocio lo requiera
 3. mantener abstraccion de acceso que permita coexistencia temporal
 
 La clave es tener contratos de datos que no asuman una sola topologia para siempre.
+
+## NUEVO 10.4 - Estrategia de particionado hibrido y control plane
+
+La evolucion enterprise rara vez termina en un modelo unico.
+Lo habitual es una estrategia hibrida donde conviven topologias por segmento de tenant.
+
+En terminos practicos:
+- tenants SMB pueden vivir en `pool` (shared-tables)
+- tenants growth pueden migrar a `schema-per-tenant`
+- tenants premium/regulados pueden operar en `silo` (database-per-tenant)
+
+El desafio no es tecnico solamente.
+Es operativo: decidir, registrar y automatizar en que topologia vive cada tenant en cada etapa.
+
+El control plane define:
+- en que topologia vive cada tenant
+- reglas de promocion entre tiers
+- politicas de capacidad, backup y cumplimiento
+- automatizacion de provisiones y migraciones
+
+Sin control plane, una estrategia hibrida se vuelve operativamente caotica.
+
+Capacidades minimas del control plane:
+- registro maestro de tenants y su topologia activa
+- flujos de migracion idempotentes
+- auditoria de cambios de topologia
+- observabilidad de estado por tenant
+
+### Flujo de promocion entre topologias
+
+Un flujo recomendado para evitar migraciones traumaticas:
+1. detectar umbral de negocio/tecnico (volumen, compliance, noisy-neighbor)
+2. crear destino (`schema` o `database`) para el tenant
+3. replicar y validar datos
+4. ejecutar cutover controlado
+5. monitorear integridad y latencia post-cutover
+
+Si no hay este flujo, la estrategia hibrida se transforma en operaciones manuales con alto riesgo.
+
+### Tenant catalog como fuente de verdad
+
+El control plane necesita un catalogo de tenants con, al menos:
+- `tenant_id`
+- topologia activa (`pool`/`schema`/`silo`)
+- version de esquema
+- endpoint de datos asociado
+- politicas de retencion/compliance
+
+La API y los workers deben enrutar por este catalogo, no por reglas hardcodeadas.
+
+### Guardrails para particionado hibrido
+
+Minimos operativos:
+- plantillas IaC por topologia
+- runbooks de rollback de migracion
+- pruebas de no-contaminacion multi-tenant
+- alertas por drift entre catalogo y recursos reales
+
+Sin guardrails, el modelo hibrido pierde trazabilidad y se vuelve dificil de auditar.
 
 ## Trade-offs y criterios de decision
 

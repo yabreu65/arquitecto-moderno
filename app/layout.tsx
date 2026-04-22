@@ -14,11 +14,11 @@ export const metadata: Metadata = {
     template: "%s | El Arquitecto Moderno",
   },
   description:
-    "Diseno de Plataformas SaaS Escalables y Sistemas de IA Agentica.",
+    "Diseno de Plataformas SaaS Enterprise y Ecosistemas de IA Agentica.",
   openGraph: {
     title: "El Arquitecto Moderno",
     description:
-      "Diseno de Plataformas SaaS Escalables y Sistemas de IA Agentica.",
+      "Diseno de Plataformas SaaS Enterprise y Ecosistemas de IA Agentica.",
     type: "website",
     locale: "es_AR",
     siteName: "El Arquitecto Moderno",
@@ -27,7 +27,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "El Arquitecto Moderno",
     description:
-      "Diseno de Plataformas SaaS Escalables y Sistemas de IA Agentica.",
+      "Diseno de Plataformas SaaS Enterprise y Ecosistemas de IA Agentica.",
   },
   alternates: {
     canonical: "/",
