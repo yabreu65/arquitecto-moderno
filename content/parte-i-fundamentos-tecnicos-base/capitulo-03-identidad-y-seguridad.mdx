@@ -1,0 +1,200 @@
+---
+title: Capitulo 3 - Identidad y Seguridad
+description: JWT, RBAC y controles de acceso para SaaS B2B multi-tenant.
+---
+
+# Capitulo 3 - Identidad y Seguridad: El Perimetro de Confianza
+
+## Contexto
+
+En arquitectura de plataformas, seguridad no empieza en el firewall.
+Empieza en la definicion de identidad, autorizacion y contexto de acceso.
+
+Cuando estas capas estan mal diseñadas, todo lo demas se vuelve irrelevante:
+- podes tener buena escalabilidad
+- podes tener buena observabilidad
+- podes tener buena DX
+
+Pero seguis teniendo riesgo de fuga de datos, escalada de privilegios y fallos de compliance.
+
+En SaaS B2B multi-tenant, la complejidad sube:
+no solo debes responder quien es el usuario, tambien debes responder para que tenant actua y bajo que permisos en ese tenant.
+
+## Que aprendera el lector
+
+- Como usar JWT como portador de contexto confiable en sistemas distribuidos.
+- Como diseñar RBAC sin caer en explosiones de roles y permisos ambiguos.
+- Como modelar `tenant_id` y `tenant context` en autenticacion y autorizacion.
+- Que controles aplicar para revocacion, trazabilidad y minimo privilegio.
+- Que errores de seguridad son frecuentes en equipos que crecen rapido.
+
+## Introduccion tecnica
+
+Autenticacion responde quien sos.
+Autorizacion responde que podes hacer.
+
+En multi-tenant, falta una tercera pregunta:
+en nombre de que tenant estas operando.
+
+Confundir estas capas es una de las causas mas comunes de incidentes en SaaS:
+- acceso cruzado entre tenants
+- permisos sobredimensionados
+- auditoria insuficiente para investigar acciones criticas
+
+Como arquitecto, tu trabajo no es solo implementar auth.
+Tu trabajo es diseñar un sistema de confianza verificable.
+
+## JWT (JSON Web Tokens)
+
+### JWT como contrato de identidad
+
+JWT es un token firmado que encapsula claims de identidad.
+No es una sesion magica ni una solucion total de seguridad.
+Es un mecanismo de transporte de contexto que debe tener reglas claras.
+
+Claims minimos recomendados en SaaS B2B:
+- `sub`: identificador de usuario
+- `tenant_id`: contexto de tenant activo
+- `roles` o `permissions` (segun estrategia)
+- `iat` y `exp` para control temporal
+- `jti` para revocacion y trazabilidad
+
+Sin `tenant_id` en claims (o sin mecanismo equivalente), cada servicio termina resolviendo tenancy por su cuenta y aumenta el riesgo de decisiones inconsistentes.
+
+### Access token vs refresh token
+
+Practica recomendada:
+- access token de vida corta
+- refresh token con rotacion
+
+Por que:
+- si se filtra un access token, el impacto temporal es limitado
+- la rotacion de refresh token reduce ventana de abuso prolongado
+
+Si usas tokens eternos por comodidad, estas comprando deuda de seguridad.
+
+### Revocacion real
+
+Error comun: asumir que JWT no se revoca porque es stateless.
+En entornos reales necesitas estrategia de revocacion:
+- blacklist por `jti` para eventos criticos
+- versionado de credenciales por usuario
+- invalidacion por cambio de password, logout global o incidente de seguridad
+
+## RBAC (Role-Based Access Control)
+
+### Que resuelve RBAC
+
+RBAC agrupa permisos en roles y asigna roles a usuarios.
+Permite controlar autorizacion de forma mantenible frente al crecimiento.
+
+Ejemplo en SaaS B2B:
+- Rol `property_manager`: `reports:read`, `devices:write`, `billing:read`
+- Rol `technician`: `devices:read`, `devices:write`
+
+### Riesgo: explosion de roles
+
+Si cada excepcion de negocio crea un rol nuevo, en poco tiempo RBAC se vuelve inmanejable.
+
+Mitigacion:
+- permisos atomicos claros
+- roles composables por perfil operativo
+- proceso de gobernanza para cambios de permisos
+
+### Tenant-aware RBAC
+
+Un usuario puede tener rol distinto por tenant.
+Eso implica que autorizacion siempre debe evaluar:
+- identidad (`sub`)
+- accion (`permission`)
+- recurso
+- contexto (`tenant_id`)
+
+No alcanza con preguntar "es admin?".
+La pregunta correcta es: "es admin de este tenant y para esta accion?".
+
+## Controles de seguridad de nivel arquitectonico
+
+### Principio de minimo privilegio
+
+Todo usuario, servicio o proceso debe tener solo los permisos necesarios para su funcion actual.
+No para "por si acaso".
+
+### Defensa en profundidad
+
+No confies en una sola capa:
+- validacion de token
+- autorizacion por permisos
+- aislamiento por `tenant_id` en query/data layer
+- auditoria de acciones sensibles
+
+Si una capa falla, otra debe contener impacto.
+
+### Auditoria y trazabilidad
+
+Cada accion critica debe registrar:
+- quien (`sub`)
+- en que tenant (`tenant_id`)
+- que accion
+- cuando
+- resultado
+
+Sin esto, no hay postmortem serio ni cumplimiento enterprise.
+
+## Trade-offs y criterios de decision
+
+### Trade-off 1: simplicidad de implementacion vs control de riesgo
+
+JWT basico sin revocacion es simple.
+Tambien es riesgoso para incidentes reales.
+
+Criterio:
+- si manejas datos sensibles o clientes enterprise, revocacion y auditoria no son opcionales.
+
+### Trade-off 2: roles gruesos vs permisos finos
+
+Roles muy gruesos simplifican operacion al inicio.
+Con el tiempo generan sobrepermisos.
+
+Criterio:
+- partir con permisos atomicos bien nombrados y roles que los compongan.
+
+### Trade-off 3: auth centralizada vs checks distribuidos
+
+Centralizar auth simplifica consistencia.
+Pero no elimina necesidad de validaciones locales de dominio.
+
+Criterio:
+- validacion de identidad central
+- autorizacion contextual en cada frontera de negocio
+
+## Errores comunes (y por que pasan)
+
+- Guardar datos sensibles en JWT sin necesidad.
+- Usar `tenant_id` opcional y no obligatorio en rutas criticas.
+- Mezclar autenticacion y autorizacion en un solo middleware opaco.
+- Resolver permisos solo en frontend.
+- No tener estrategia de rotacion y revocacion.
+- Asumir que rol global aplica igual para todos los tenants.
+
+La raiz vuelve a ser la misma: diseño de seguridad guiado por urgencia y no por modelo de amenaza.
+
+## Checklist de arquitectura para este capitulo
+
+- [ ] Access tokens tienen expiracion corta.
+- [ ] Refresh tokens usan rotacion controlada.
+- [ ] Claims incluyen `sub`, `tenant_id`, `exp` y `jti`.
+- [ ] Existe estrategia de revocacion para eventos criticos.
+- [ ] RBAC se basa en permisos atomicos, no solo en roles generales.
+- [ ] Todas las decisiones de autorizacion consideran `tenant context`.
+- [ ] Operaciones sensibles generan audit log con `tenant_id`.
+- [ ] No hay endpoint critico que dependa solo de validacion en frontend.
+- [ ] Modelo de minimo privilegio esta documentado y aplicado.
+
+## Estructura lista para expandir
+
+- Modelo de identidad y ciclo de vida de tokens.
+- Matriz RBAC por tenant y por dominio funcional.
+- Politica de revocacion y respuesta ante incidentes.
+- Framework de auditoria para cumplimiento enterprise.
+- Checklist de hardening para endpoints criticos.

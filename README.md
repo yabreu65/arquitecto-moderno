@@ -1,36 +1,106 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# El Arquitecto Moderno
 
-## Getting Started
+Diseno de Plataformas SaaS Escalables y Sistemas de IA Agentica.
 
-First, run the development server:
+Este repositorio contiene el libro tecnico en formato documentacion, construido con Next.js + Nextra + MDX.
+
+## Stack
+
+- Next.js 16 (App Router)
+- Nextra 4 (`nextra-theme-docs`)
+- MDX como fuente de contenido
+- Tailwind CSS 4
+
+## Estructura del proyecto
+
+```text
+app/
+  layout.tsx                 # Layout global Nextra
+  [[...mdxPath]]/page.tsx    # Gateway de rutas MDX
+  robots.ts                  # Robots SEO
+  sitemap.ts                 # Sitemap SEO
+
+content/
+  _meta.ts                   # Navegacion global/sidebar
+  index.mdx                  # Home del libro
+  introduccion.mdx
+  guia-editorial.mdx         # Guia interna (oculta en sidebar)
+  parte-*/                   # Capitulo por parte
+
+theme.config.tsx             # Configuracion del tema Nextra
+mdx-components.tsx           # Integracion MDX de docs theme
+scripts/check-cap1-coherence.mjs
+```
+
+## Desarrollo local
+
+Variables de entorno recomendadas (`.env.local`):
+
+```bash
+NEXT_PUBLIC_SITE_URL=http://localhost:3000
+NEXT_PUBLIC_REPO_URL=https://github.com/tu-org/arquitecto-moderno
+```
+
+En produccion, `NEXT_PUBLIC_SITE_URL` debe apuntar al dominio final del sitio.
+
+Instalar dependencias:
+
+```bash
+npm install
+```
+
+Levantar el entorno local:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Abrir:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```text
+http://localhost:3000
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Calidad y validaciones
 
-## Learn More
+Lint:
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+npm run lint
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Type checking:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```bash
+npx tsc --noEmit
+```
 
-## Deploy on Vercel
+Coherencia editorial y tecnica del libro:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```bash
+npm run test:book
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Convenciones editoriales
+
+- Terminologia canonica: `tenant`, `tenant_id`, `tenant context`
+- Estructura obligatoria por capitulo:
+  - `## Contexto`
+  - `## Que aprendera el lector`
+  - `## Introduccion tecnica`
+  - `## Estructura lista para expandir`
+- Tono tecnico, profesional y orientado a arquitectura aplicada
+
+Referencia completa: `content/guia-editorial.mdx`.
+
+## SEO
+
+- Metadata base en `app/layout.tsx`
+- Robots en `app/robots.ts`
+- Sitemap en `app/sitemap.ts`
+
+Antes de produccion, actualizar URLs canónicas:
+
+- `NEXT_PUBLIC_SITE_URL`
+
+en variables de entorno de Vercel o tu plataforma de deploy.

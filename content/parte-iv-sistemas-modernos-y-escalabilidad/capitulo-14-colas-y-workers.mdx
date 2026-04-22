@@ -1,0 +1,161 @@
+---
+title: Capitulo 14 - Colas y Workers
+description: BullMQ, retries y DLQ para procesamiento en segundo plano.
+---
+
+# Capitulo 14 - Colas y Workers
+
+## Contexto
+
+No todo debe pasar en la request principal.
+Colas y workers permiten escalar tareas pesadas sin degradar experiencia de usuario.
+
+Sin esta separacion, el sistema queda atado al tiempo de las operaciones mas lentas.
+Resultado:
+- timeouts
+- UX inestable
+- saturacion de recursos en picos
+
+Queues y workers no son "optimzacion".
+Son base de arquitectura operable para procesamiento no interactivo.
+
+## Que aprendera el lector
+
+- Procesamiento en segundo plano con BullMQ en NestJS.
+- Patron retry con backoff.
+- Manejo de Dead Letter Queues.
+- Como modelar jobs idempotentes por tenant.
+- Como instrumentar colas para operar en produccion.
+
+## Introduccion tecnica
+
+La asincronia sin gobierno genera tareas zombis y estados inconsistentes.
+Hace falta definir politicas claras de reintento, expiracion y compensacion.
+
+Diseñar colas correctamente implica definir contratos de job, lifecycle y ownership de errores.
+
+## Modelado de jobs
+
+Un job bien disenado incluye:
+- `job_type`
+- `tenant_id` (si aplica)
+- payload minimo necesario
+- `correlation_id`
+- metadatos de prioridad
+
+Regla:
+- payload chico, referencial y trazable.
+
+Meter objetos gigantes en cola aumenta costo y riesgo de inconsistencia.
+
+## Idempotencia y reintentos
+
+### Idempotencia
+
+Un worker debe tolerar ejecuciones repetidas sin duplicar efectos.
+
+Ejemplos de control:
+- clave idempotente por operacion
+- verificacion de estado previo
+- operaciones upsert seguras
+
+### Retry con backoff
+
+No todo error merece el mismo retry.
+
+Clasificacion util:
+- error transitorio -> retry con backoff exponencial
+- error permanente de negocio -> enviar a DLQ o marcar fallo definitivo
+
+Sin esta distincion, la cola se convierte en ciclado infinito.
+
+## Dead Letter Queues (DLQ)
+
+DLQ no es basurero.
+Es zona de analisis y recuperacion controlada.
+
+Buenas practicas:
+- incluir motivo de fallo
+- exponer dashboard de DLQ
+- definir procedimiento de replay
+- asignar ownership de resolucion
+
+Si nadie mira la DLQ, estas ocultando incidentes.
+
+## BullMQ en NestJS
+
+BullMQ da primitives solidas para colas en ecosistema Node/NestJS.
+
+Puntos arquitectonicos clave:
+- separar producer y consumer claramente
+- controlar concurrency por tipo de job
+- instrumentar tiempos de espera y procesamiento
+- limitar retries por tipo de error
+
+No confundas capacidad de encolar con capacidad de operar.
+
+## Multi-tenant en colas
+
+En SaaS B2B debes decidir politicas de aislamiento:
+- colas compartidas con prioridad por tenant
+- colas separadas por tenant premium
+
+Sea cual sea la topologia:
+- todo job tenant-scoped debe incluir `tenant_id`
+- logs y metricas deben permitir analisis por tenant
+
+## Trade-offs y criterios de decision
+
+### Trade-off 1: simplicidad de flujo sync vs robustez async
+
+Sync es simple de implementar.
+Async protege latencia y escalabilidad.
+
+Criterio:
+- tareas largas, pesadas o no interactivas -> async.
+
+### Trade-off 2: retries agresivos vs costo operativo
+
+Mucho retry aumenta probabilidad de exito transitorio.
+Tambien sube costo y ruido.
+
+Criterio:
+- retry orientado por tipo de error, no global.
+
+### Trade-off 3: cola unica vs segmentacion
+
+Cola unica simplifica administracion.
+Segmentacion mejora aislamiento de cargas.
+
+Criterio:
+- segmentar cuando hay perfiles de tenant con workloads muy distintos.
+
+## Errores comunes (y por que pasan)
+
+- Jobs no idempotentes con retries activos.
+- No incluir `tenant_id` en payload tenant-scoped.
+- Reintentar errores permanentes indefinidamente.
+- No tener dashboard de DLQ.
+- Mezclar logica de negocio pesada en producer sin control.
+
+La causa habitual: ver colas como "infra de fondo" y no como parte del dominio operativo.
+
+## Checklist de arquitectura para este capitulo
+
+- [ ] Jobs tienen contrato claro y versionable.
+- [ ] Operaciones de worker son idempotentes.
+- [ ] Retries diferencian errores transitorios y permanentes.
+- [ ] Existe DLQ con proceso de analisis y replay.
+- [ ] `tenant_id` esta presente en jobs tenant-scoped.
+- [ ] Observabilidad incluye tiempos de espera y ejecucion.
+- [ ] Concurrency por job type esta controlada.
+- [ ] Hay ownership claro de incidentes de colas.
+- [ ] Los SLAs de procesamiento estan definidos.
+
+## Estructura lista para expandir
+
+- Catalogo de jobs y prioridades.
+- Estrategias de retry por tipo de fallo.
+- Politica de DLQ y re-proceso.
+- Monitoreo de workers.
+- Politica de aislamiento multi-tenant para colas.

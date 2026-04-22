@@ -1,0 +1,190 @@
+---
+title: Capitulo 4 - Infraestructura e IA
+description: Docker, LLMs, prompts y RAG con foco en operacion segura multi-tenant.
+---
+
+# Capitulo 4 - El Corazon de la IA Moderna
+
+## Contexto
+
+Una arquitectura moderna ya no separa infraestructura de inteligencia.
+Las dos capas se condicionan mutuamente:
+- sin disciplina de plataforma, la IA es inestable
+- sin criterio de IA, la plataforma se vuelve irrelevante para problemas cognitivos
+
+En SaaS B2B multi-tenant el riesgo es mayor.
+No alcanza con que el modelo responda "bien".
+Debe responder con contexto correcto, sin filtrar informacion entre tenants y con trazabilidad operativa.
+
+Por eso este capitulo une dos mundos que muchos equipos tratan por separado:
+infraestructura ejecutable (contenedores) y arquitectura de IA (LLMs, prompts, RAG).
+
+## Que aprendera el lector
+
+- Como usar Docker como base de aislamiento y despliegue reproducible.
+- Diferencia entre LLM, prompt y pipeline de orquestacion.
+- Como funciona RAG para conectar IA con datos privados.
+- Riesgos reales de leakage entre tenants en sistemas de IA.
+- Criterios para desacoplar proveedores de modelo con adapters.
+
+## Introduccion tecnica
+
+Un sistema de IA en produccion no es un prompt bonito.
+Es un pipeline tecnico que combina:
+- ingreso de consulta
+- recuperacion de contexto
+- construccion de prompt
+- invocacion de LLM
+- validacion de salida
+- observabilidad y auditoria
+
+Cada etapa puede fallar.
+Si no tenes infraestructura consistente y contratos claros, no podes escalar ni operar.
+
+## Docker y contenedores
+
+### Por que importa para arquitectura
+
+Docker no es solo empaquetado.
+Es una forma de garantizar que el mismo artefacto corre igual en desarrollo, CI y produccion.
+
+Beneficios arquitectonicos:
+- aislamiento de procesos y dependencias
+- reproducibilidad de entorno
+- despliegues mas confiables
+- rollback predecible
+
+En equipos con IA, esto es clave porque toolchains de modelos, librerias y runtimes cambian rapido.
+
+### Error comun de equipos jovenes
+
+Construir imagenes pesadas y no deterministas.
+Eso aumenta tiempo de despliegue, superficie de ataque y costo operativo.
+
+Criterios minimos:
+- multi-stage builds
+- base image minima
+- usuario no-root en runtime
+- variables de entorno controladas por entorno
+
+## LLMs, prompts y RAG
+
+### LLM: el motor, no el sistema entero
+
+El LLM (GPT, Claude, etc.) es un componente.
+No es la arquitectura completa.
+
+Si tratas al LLM como caja magica, perdes control sobre:
+- costos
+- calidad
+- seguridad
+- explicabilidad
+
+### Prompt: interfaz de comportamiento
+
+El prompt define intencion y restricciones operativas.
+No es texto libre improvisado.
+
+Buenas practicas:
+- instrucciones claras y estables
+- formato de salida definido
+- politicas de seguridad explicitas
+- delimitacion de contexto inyectado
+
+### RAG: traer datos privados sin reentrenar
+
+RAG (Retrieval-Augmented Generation) conecta el LLM con datos de negocio sin necesidad de fine-tuning para cada cambio.
+
+Flujo simplificado:
+1. Convertis documentos a embeddings.
+2. Almacenas en base vectorial.
+3. Recuperas fragmentos relevantes por similitud.
+4. Inyectas esos fragmentos al prompt.
+5. El LLM responde con contexto actualizado.
+
+Esto reduce alucinaciones y mejora relevancia en dominios propietarios.
+
+## Riesgo central: aislamiento multi-tenant en IA
+
+En un SaaS multi-tenant, el error mas grave no es una respuesta mediocre.
+Es mezclar contexto de tenant A con tenant B.
+
+Controles obligatorios:
+- filtrado por `tenant_id` en retrieval
+- namespaces o particion por tenant en vector store
+- trazabilidad de documentos recuperados
+- tests de no-contaminacion entre tenants
+
+Si no podes demostrar aislamiento, no tenes IA enterprise-ready.
+
+## Adapters para proveedores de IA
+
+Acoplar logica de negocio directamente a API de proveedor (OpenAI, Anthropic, etc.) es deuda tecnica inmediata.
+
+Patron recomendado:
+- definir interfaz de dominio para "motor de inferencia"
+- implementar adapters por proveedor
+- mantener prompts y politicas fuera del core de negocio
+
+Beneficios:
+- cambio de proveedor sin reescritura masiva
+- negociacion de costos y latencia
+- capacidad de fallback multi-modelo
+
+## Trade-offs y criterios de decision
+
+### Trade-off 1: rapidez de prototipo vs robustez operativa
+
+Lanzar un prototipo de IA es rapido.
+Operarlo con SLA es otra historia.
+
+Criterio:
+- demo interna: velocidad
+- producto para clientes: observabilidad + seguridad + rollback
+
+### Trade-off 2: un solo proveedor vs estrategia multi-adapter
+
+Un proveedor simplifica inicio.
+Tambien aumenta lock-in de costos y roadmap.
+
+Criterio:
+- empezar con uno, diseñar interfaz desde dia 1 para soportar mas.
+
+### Trade-off 3: precision maxima vs latencia y costo
+
+Mas contexto y modelos mas grandes pueden subir calidad.
+Tambien suben latencia y costo por request.
+
+Criterio:
+- segmentar por caso de uso y SLA
+- no aplicar el mismo pipeline a todas las operaciones
+
+## Errores comunes (y por que pasan)
+
+- Tratar RAG como plugin sin diseñar retrieval por tenant.
+- No versionar prompts ni evaluarlos con datos reales.
+- Acoplar negocio a SDK especifico de proveedor.
+- No instrumentar costos por flujo de IA.
+- Desplegar servicios de IA sin estrategia de rollback.
+
+La raiz suele ser la misma: confundir experimento con producto.
+
+## Checklist de arquitectura para este capitulo
+
+- [ ] Las imagenes Docker son reproducibles y minimas.
+- [ ] Runtime opera con usuario no-root.
+- [ ] El flujo de IA separa retrieval, prompting y generacion.
+- [ ] RAG aplica filtro estricto por `tenant_id`.
+- [ ] Existen tests de no-fuga entre tenants.
+- [ ] La integracion con LLM esta abstraida via adapter.
+- [ ] Hay observabilidad de latencia, costo y tasa de error por flujo IA.
+- [ ] Se versionan prompts y configuraciones relevantes.
+- [ ] Existe estrategia de fallback ante caida de proveedor.
+
+## Estructura lista para expandir
+
+- Blueprint de plataforma Docker para servicios de IA.
+- Catalogo de prompts versionados por caso de uso.
+- Arquitectura RAG multi-tenant (silo/pool/bridge).
+- Matriz de riesgos de seguridad y mitigaciones IA.
+- Patron de adapters para proveedores LLM.

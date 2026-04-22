@@ -1,0 +1,166 @@
+---
+title: Capitulo 18 - Frameworks de Orquestacion
+description: Comparativa LangGraph, CrewAI y AutoGen con foco arquitectonico.
+---
+
+# Capitulo 18 - Frameworks de Orquestacion
+
+## Contexto
+
+Elegir framework sin criterios claros termina en lock-in y deuda tecnica.
+La comparativa debe partir de requerimientos de arquitectura, no de hype.
+
+Cada framework promete acelerar agentes.
+La pregunta real para arquitectura no es "cual esta de moda".
+Es:
+- cual encaja con mi modelo operativo
+- cual puedo gobernar en produccion
+- cual me deja evolucionar sin rehacer todo
+
+## Que aprendera el lector
+
+- Diferencias entre LangGraph, CrewAI y AutoGen.
+- Gestion de estado y memoria en flujos agenticos.
+- Criterios de seleccion segun complejidad y operacion.
+- Como evitar lock-in de framework.
+- Como evaluar madurez para entorno enterprise.
+
+## Introduccion tecnica
+
+Los frameworks no reemplazan diseno arquitectonico.
+Solo aceleran implementacion cuando existe una estrategia clara de orquestacion.
+
+Tu framework es una decision de plataforma.
+Impacta:
+- modelo de estado
+- observabilidad
+- testing
+- deploy y costos
+
+## LangGraph (enfoque por grafos)
+
+Fortalezas:
+- modelado explicito de estados y transiciones
+- adecuado para workflows complejos y deterministas
+- buen encaje con necesidad de control de flujo
+
+Riesgos:
+- mayor complejidad de modelado inicial
+- curva de aprendizaje para equipos sin experiencia en state machines
+
+Ideal cuando priorizas gobernanza de flujo y trazabilidad.
+
+## CrewAI (enfoque por roles y equipos)
+
+Fortalezas:
+- expresivo para colaboracion entre agentes
+- rapido para prototipos multi-rol
+
+Riesgos:
+- puede volverse opaco en flujos muy grandes
+- requiere disciplina para no derivar en "magia"
+
+Ideal para equipos que buscan productividad inicial en escenarios colaborativos.
+
+## AutoGen (conversacional multi-agente)
+
+Fortalezas:
+- flexible para interacciones entre agentes
+- util en exploracion de estrategias de dialogo
+
+Riesgos:
+- control de estado y costos puede complicarse
+- necesita buena gobernanza para produccion estable
+
+Ideal para casos con dinamica de conversacion rica y experimentacion guiada.
+
+## Criterios de comparacion arquitectonica
+
+Evalua frameworks con matriz explicita:
+- control de estado
+- soporte de memoria
+- trazabilidad/observabilidad
+- capacidad de testing
+- extensibilidad de tools
+- costo operativo
+- lock-in tecnico
+
+Si no hay matriz, la eleccion suele ser emocional.
+
+## Gestion de estado y memoria
+
+La pregunta clave no es "tiene memoria?".
+Es "como gobierna memoria en condiciones reales".
+
+Revisar:
+- persistencia de estado entre ejecuciones
+- aislamiento por tenant
+- versionado de contexto
+- limpieza/retencion de memoria
+
+Framework sin modelo de estado claro = deuda segura.
+
+## Estrategia anti lock-in
+
+Aunque uses framework, protege tu dominio:
+- interfaces propias para agentes y tools
+- contratos de entrada/salida estables
+- capa adaptadora hacia framework
+
+Asi podes cambiar framework sin reescribir toda la logica de negocio.
+
+## Trade-offs y criterios de decision
+
+### Trade-off 1: velocidad de prototipo vs robustez de produccion
+
+Frameworks muy amigables aceleran demos.
+No siempre sostienen operacion compleja.
+
+Criterio:
+- validar con casos de produccion, no solo playground.
+
+### Trade-off 2: flexibilidad vs control
+
+Mas flexibilidad facilita experimentacion.
+Menos control complica compliance y debugging.
+
+Criterio:
+- en entornos enterprise, priorizar trazabilidad y control.
+
+### Trade-off 3: adopcion rapida vs lock-in
+
+Adoptar rapido reduce time-to-value.
+Tambien puede cerrar puertas futuras.
+
+Criterio:
+- abstraer dominio para preservar opcion de cambio.
+
+## Errores comunes (y por que pasan)
+
+- Elegir framework por comunidad sin pruebas de carga real.
+- No medir costo por ejecucion y por flujo.
+- Acoplar business logic al API del framework.
+- Ignorar limitaciones de observabilidad.
+- No definir estrategia de salida (exit strategy).
+
+La causa: confundir herramienta de desarrollo con decision arquitectonica.
+
+## Checklist de arquitectura para este capitulo
+
+- [ ] Existe matriz objetiva de comparacion.
+- [ ] Se evaluo estado/memoria en contexto multi-tenant.
+- [ ] Se valido observabilidad end-to-end.
+- [ ] Hay estrategia de testing de flujos.
+- [ ] Se midio costo real por escenario clave.
+- [ ] El dominio no depende directamente del framework.
+- [ ] Existe plan de migracion o fallback.
+- [ ] Se evaluo seguridad de tools y permisos.
+- [ ] La eleccion se justifica por requerimientos, no por hype.
+
+## Estructura lista para expandir
+
+- Matriz comparativa por capacidades.
+- Estado y memoria por framework.
+- Tradeoffs de extensibilidad.
+- Estrategia de adopcion gradual.
+- Politica de abstraccion anti lock-in.

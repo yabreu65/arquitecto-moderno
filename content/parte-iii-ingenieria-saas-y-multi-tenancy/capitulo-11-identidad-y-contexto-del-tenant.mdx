@@ -1,0 +1,170 @@
+---
+title: Capitulo 11 - Identidad y Contexto del Tenant
+description: Resolucion de tenant ID e inyeccion de contexto en NestJS.
+---
+
+# Capitulo 11 - Identidad y Contexto del Tenant
+
+## Contexto
+
+En multi-tenancy, la identidad del usuario no alcanza.
+Hay que resolver tambien el contexto de tenant en cada request.
+
+Este punto parece obvio hasta que aparecen incidentes:
+- usuario valido operando sobre datos de otro tenant
+- jobs asincronos sin contexto correcto
+- trazas sin informacion de tenant para investigar
+
+La pregunta no es solo "quien llama".
+La pregunta completa es:
+- quien
+- para que tenant
+- con que permisos
+- desde que canal
+
+## Que aprendera el lector
+
+- Resolucion de tenant ID por subdominio, ruta y headers.
+- Inyeccion de tenant context en servicios NestJS.
+- Validaciones para evitar contaminacion cruzada.
+- Patrones de propagacion de contexto en flujos sync y async.
+- Riesgos al mezclar contexto de usuario y contexto de tenant.
+
+## Introduccion tecnica
+
+El tenant context debe ser explicito, trazable y consistente.
+Si queda implicito, aparecen bugs silenciosos y brechas de seguridad.
+
+Arquitectura robusta define una "fuente de verdad" para resolver tenant y la aplica de manera uniforme.
+No se permite que cada modulo "adivine" tenant con reglas propias.
+
+## Resolucion de tenant ID
+
+### Estrategia por subdominio
+
+Ejemplo:
+- `acme.tuapp.com` -> `tenant_id = acme`
+
+Ventajas:
+- claro para UX y operacion
+- facil de enrutar en gateway
+
+Riesgos:
+- validacion insuficiente de dominio
+- edge cases en entornos internos o custom domains
+
+### Estrategia por path
+
+Ejemplo:
+- `/t/acme/reports`
+
+Ventajas:
+- simple para entornos sin DNS por tenant
+
+Riesgos:
+- mayor posibilidad de manipular tenant en URL sin controles fuertes
+
+### Estrategia por headers
+
+Ejemplo:
+- `X-Tenant-Id: acme`
+
+Ventajas:
+- util en BFFs y APIs internas
+
+Riesgos:
+- alta confianza en origen del header
+- requiere gateway que sanee/controle encabezados
+
+Regla:
+- si el tenant viene por header desde cliente externo sin control de borde, el riesgo sube fuerte.
+
+## Inyeccion de tenant context en NestJS
+
+Patron recomendado:
+1. middleware o guard resuelve tenant
+2. valida pertenencia usuario-tenant
+3. guarda `tenant context` en request scope
+4. servicios consumen contexto tipado, no strings sueltos
+
+Esto reduce errores de propagacion y estandariza auditoria.
+
+## Propagacion en flujos asincronos
+
+No alcanza con request HTTP.
+Tambien hay que propagar contexto en:
+- eventos
+- colas
+- workers
+- tareas programadas
+
+Regla practica:
+- todo job/evento tenant-scoped lleva `tenant_id` obligatorio en payload.
+
+Si no, un worker puede ejecutar con contexto incompleto y afectar otro tenant.
+
+## Contratos de seguridad para tenant context
+
+Validaciones minimas:
+- usuario pertenece al tenant activo
+- rol/permisos validos para ese tenant
+- token no expirado/revocado
+- tenant activo (no suspendido)
+
+Estas validaciones deben vivir en fronteras de entrada, no dispersas aleatoriamente.
+
+## Trade-offs y criterios de decision
+
+### Trade-off 1: resolver tenant temprano vs flexibilidad por modulo
+
+Resolver tenant en borde estandariza.
+Resolver en cada modulo da flexibilidad aparente.
+
+Criterio:
+- resolver temprano y propagar contexto tipado.
+
+### Trade-off 2: request-scoped context vs simplicidad de performance
+
+Request scope facilita consistencia.
+Puede tener costo de performance si se usa sin criterio.
+
+Criterio:
+- usar request scope en rutas tenant-criticas y medir impacto.
+
+### Trade-off 3: una unica estrategia de resolucion vs estrategia hibrida
+
+Una estrategia unica simplifica.
+Hibrida puede ser necesaria por canales distintos.
+
+Criterio:
+- permitir multiples entradas, una sola normalizacion interna.
+
+## Errores comunes (y por que pasan)
+
+- Confiar `tenant_id` enviado por cliente sin validacion cruzada.
+- Resolver tenant en controller y olvidar en jobs asincronos.
+- Mezclar contexto de sesion global con contexto tenant local.
+- No loggear `tenant_id` en operaciones criticas.
+- No testear escenarios de acceso cruzado.
+
+La causa mas frecuente es no tratar tenant context como contrato de seguridad.
+
+## Checklist de arquitectura para este capitulo
+
+- [ ] La resolucion de tenant tiene fuente de verdad definida.
+- [ ] Toda ruta tenant-scoped valida pertenencia usuario-tenant.
+- [ ] `tenant context` se propaga de forma tipada.
+- [ ] Jobs/eventos incluyen `tenant_id` obligatorio.
+- [ ] Logs criticos incluyen `tenant_id`, `sub` y accion.
+- [ ] Existen pruebas de contaminacion cruzada.
+- [ ] Headers de tenant externos estan sanitizados en gateway.
+- [ ] Tenant suspendido/inactivo bloquea operaciones.
+- [ ] Hay observabilidad por tenant en errores de autorizacion.
+
+## Estructura lista para expandir
+
+- Estrategias de resolucion de tenant.
+- Middleware y guards de contexto.
+- Propagacion de contexto en capa de aplicacion.
+- Pruebas de aislamiento por tenant.
+- Politica de contexto tenant para workers y eventos.

@@ -1,0 +1,172 @@
+---
+title: Capitulo 16 - Multi-tenant RAG
+description: Arquitecturas de datos vectoriales y estrategias de aislamiento para RAG.
+---
+
+# Capitulo 16 - Multi-tenant RAG
+
+## Contexto
+
+RAG multi-tenant no es solo indexar documentos.
+Es garantizar aislamiento semantico y seguridad entre clientes.
+
+En IA aplicada a SaaS B2B, el peor incidente no es una respuesta floja.
+Es responder con informacion correcta del tenant equivocado.
+
+Ese riesgo aumenta cuando el equipo piensa RAG solo como "buscar embeddings".
+RAG multi-tenant es un problema de arquitectura de datos, seguridad y trazabilidad.
+
+## Que aprendera el lector
+
+- Arquitecturas Silo, Pool y Bridge para datos vectoriales.
+- Uso de Pinecone y PGVector en contextos multi-tenant.
+- Riesgos de fuga de conocimiento entre tenants.
+- Como definir filtros de retrieval por `tenant_id`.
+- Como evaluar leakage y precision por tenant.
+
+## Introduccion tecnica
+
+La capa de retrieval define que contexto ve el modelo.
+Si esa capa falla, el sistema puede responder datos de otro cliente.
+
+RAG tiene tres zonas sensibles:
+- ingestion
+- indexing
+- retrieval
+
+Si cualquiera de esas zonas pierde aislamiento, el prompt final queda contaminado.
+
+## Arquitecturas de aislamiento
+
+### Silo
+
+Cada tenant tiene su propio indice o namespace dedicado fuerte.
+
+Ventajas:
+- maximo aislamiento
+- debugging y auditoria mas claros
+
+Costos:
+- mayor costo de operacion
+- mayor fragmentacion de datos
+
+### Pool
+
+Todos comparten infraestructura vectorial con filtrado por metadatos (`tenant_id`).
+
+Ventajas:
+- eficiencia de costo
+- operacion mas simple
+
+Costos:
+- riesgo elevado si filtros fallan
+- mayor dependencia de gobernanza estricta
+
+### Bridge
+
+Modelo hibrido: pool para base general + silo para tenants criticos o sensibles.
+
+Ventajas:
+- balance entre costo y aislamiento
+
+Costos:
+- complejidad de routing y gobernanza
+
+## Pinecone y PGVector (criterio de uso)
+
+Pinecone:
+- servicio gestionado, rapido para escalar
+- buen soporte de namespaces y operaciones vectoriales
+
+PGVector:
+- control total en ecosistema Postgres
+- integracion fuerte con stack SQL existente
+
+Criterio:
+- velocidad de adopcion y managed ops -> Pinecone
+- control infra y proximidad a datos relacionales -> PGVector
+
+No es batalla de herramientas.
+Es alineacion con tu contexto operativo.
+
+## Retrieval seguro por tenant
+
+Reglas minimas:
+- filtro obligatorio por `tenant_id`
+- metadatos inmutables del documento
+- validacion cruzada del contexto antes de construir prompt
+
+Patron recomendado:
+1. resolver `tenant context`
+2. ejecutar retrieval scopeado por tenant
+3. auditar ids de chunks recuperados
+4. construir prompt con trazabilidad de fuentes
+
+## Evaluacion de calidad y leakage
+
+No alcanza con medir "respuesta correcta".
+Debes medir tambien:
+- precision por tenant
+- recall por tenant
+- tasa de leakage inter-tenant
+
+Pruebas recomendadas:
+- datasets sinteticos cruzados
+- red-team prompts para intentar exfiltracion
+- suites regression por tenant sensible
+
+## Trade-offs y criterios de decision
+
+### Trade-off 1: costo de infraestructura vs riesgo de leakage
+
+Pool reduce costo.
+Silo reduce riesgo.
+
+Criterio:
+- segmentar por criticidad de tenant y requerimiento regulatorio.
+
+### Trade-off 2: contexto amplio vs latencia/costo
+
+Mas contexto puede mejorar calidad.
+Tambien sube latencia y costo token.
+
+Criterio:
+- retrieval orientado a relevancia, no a cantidad.
+
+### Trade-off 3: velocidad de prototipo vs gobernanza de datos
+
+Prototipar RAG es rapido.
+Gobernar lifecycle de documentos no.
+
+Criterio:
+- definir ownership de ingestion, borrado y reindex desde inicio.
+
+## Errores comunes (y por que pasan)
+
+- Filtrado por tenant solo en app, no en motor vectorial.
+- Metadatos incompletos en chunks.
+- No poder rastrear documentos fuente de una respuesta.
+- No tener estrategia de borrado por tenant (right to forget).
+- Evaluar solo calidad linguistica y no seguridad.
+
+La causa habitual: tratar RAG como feature de UX en lugar de subsistema critico.
+
+## Checklist de arquitectura para este capitulo
+
+- [ ] Arquitectura de aislamiento (silo/pool/bridge) esta definida.
+- [ ] Retrieval tenant-scoped usa `tenant_id` obligatorio.
+- [ ] Chunks indexados tienen metadatos auditables.
+- [ ] Existe trazabilidad de fuentes en respuestas.
+- [ ] Se mide leakage inter-tenant en pruebas.
+- [ ] Hay politica de borrado y reindex por tenant.
+- [ ] Se monitorea costo y latencia por flujo RAG.
+- [ ] Segmentacion de tenants por criticidad esta documentada.
+- [ ] Se ejecutan pruebas de red-team periodicas.
+
+## Estructura lista para expandir
+
+- Modelo de indexacion por tenant.
+- Estrategia de embeddings.
+- Filtrado y seguridad en queries vectoriales.
+- Evaluacion de precision y leakage.
+- Politica de lifecycle de documentos por tenant.

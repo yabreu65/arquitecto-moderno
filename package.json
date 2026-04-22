@@ -6,10 +6,13 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test:book": "node scripts/check-cap1-coherence.mjs"
   },
   "dependencies": {
     "next": "16.2.4",
+    "nextra": "^4.6.1",
+    "nextra-theme-docs": "^4.6.1",
     "react": "19.2.4",
     "react-dom": "19.2.4"
   },

@@ -1,0 +1,185 @@
+---
+title: Capitulo 10 - Modelos de Aislamiento de Datos
+description: Database-per-tenant, schema-per-tenant, shared-tables y RLS con criterio de costo y seguridad.
+---
+
+# Capitulo 10 - Modelos de Aislamiento de Datos
+
+## Contexto
+
+El modelo de aislamiento de datos es una de las decisiones mas caras de corregir en un SaaS B2B.
+Define seguridad, costo operativo, rendimiento, cumplimiento y velocidad de evolucion.
+
+Cuando se elige por intuicion y no por criterios, aparecen sintomas predecibles:
+- ruido entre tenants
+- consultas complejas para filtrar contexto
+- migraciones lentas
+- costos de infraestructura impredecibles
+
+No existe un modelo perfecto universal.
+Existe un modelo adecuado para tu etapa de producto, perfil de cliente y postura de riesgo.
+
+## Que aprendera el lector
+
+- Comparativa de modelos de aislamiento por tenant.
+- Tradeoffs de costo, seguridad y operacion.
+- Implementacion de Postgres RLS.
+- Criterios para cambiar de modelo sin colapsar el producto.
+- Riesgos mas comunes de leakage multi-tenant.
+
+## Introduccion tecnica
+
+No existe modelo perfecto universal. El objetivo es elegir el modelo correcto
+para la etapa del producto y el perfil de clientes.
+
+En la practica, la decision suele moverse entre tres enfoques:
+- `database-per-tenant`
+- `schema-per-tenant`
+- `shared-tables` con `tenant_id`
+
+Cada uno optimiza algo distinto.
+Arquitectura madura explicita que prioriza y que sacrifica.
+
+## Modelo 1: database-per-tenant
+
+### Que ofrece
+
+Cada tenant vive en una base separada.
+Es el maximo aislamiento logico y operativo.
+
+Ventajas:
+- separacion fuerte de datos
+- cumplimiento mas facil en clientes exigentes
+- menor riesgo de leakage por query incorrecta
+
+Costos:
+- operacion mas compleja (miles de DBs)
+- upgrades y migraciones mas pesadas
+- costo de infraestructura creciente
+
+Uso recomendado:
+- clientes enterprise de alto valor con exigencias regulatorias estrictas.
+
+## Modelo 2: schema-per-tenant
+
+### Que ofrece
+
+Una misma base, varios schemas.
+Da aislamiento razonable con menor costo que database-per-tenant.
+
+Ventajas:
+- buen balance entre aislamiento y operacion
+- backup/restore por tenant mas viable
+- menor costo base
+
+Costos:
+- tooling de migraciones mas cuidadoso
+- crecimiento de objetos por schema
+- complejidad en observabilidad por tenant
+
+Uso recomendado:
+- etapa intermedia con necesidad de aislamiento superior a shared-tables.
+
+## Modelo 3: shared-tables con tenant_id
+
+### Que ofrece
+
+Todos los tenants comparten tablas y se segmenta por `tenant_id`.
+Es el modelo mas comun para etapas iniciales y escalado rapido.
+
+Ventajas:
+- simplicidad de operacion
+- migraciones unificadas
+- costo inicial mas bajo
+
+Costos:
+- mayor riesgo de leakage por errores de filtrado
+- ruido de rendimiento entre tenants
+- compliance mas desafiante para ciertos segmentos
+
+Uso recomendado:
+- producto temprano o mid-market con fuerte foco en velocidad.
+
+## Postgres RLS (Row Level Security)
+
+RLS permite reforzar aislamiento en capa de base, no solo en aplicacion.
+
+Beneficio clave:
+- incluso si una query olvida filtro, politica RLS puede bloquear acceso fuera del tenant.
+
+Regla arquitectonica:
+- RLS no reemplaza buenos filtros en app
+- RLS agrega defensa en profundidad
+
+Minimos para usarlo bien:
+- politica por tabla tenant-scoped
+- contexto de sesion confiable (`tenant_id`)
+- pruebas automticas de acceso cruzado
+
+## Estrategia de evolucion entre modelos
+
+No te cases dogmaticamente con el primer modelo.
+Diseña desde el inicio para evolucionar.
+
+Patron pragmatcio:
+1. arrancar con shared-tables bien gobernado
+2. mover tenants premium a schema-per-tenant o database-per-tenant cuando negocio lo requiera
+3. mantener abstraccion de acceso que permita coexistencia temporal
+
+La clave es tener contratos de datos que no asuman una sola topologia para siempre.
+
+## Trade-offs y criterios de decision
+
+### Trade-off 1: aislamiento maximo vs costo operativo
+
+Mas aislamiento reduce riesgo.
+Tambien sube costo de operacion.
+
+Criterio:
+- segmentar tenants por criticidad y valor, no aplicar misma topologia a todos.
+
+### Trade-off 2: simplicidad inicial vs deuda de seguridad
+
+Shared-tables acelera salida.
+Sin guardrails, aumenta riesgo de leakage.
+
+Criterio:
+- si usas shared-tables, `tenant_id` + RLS + testing obligatorio.
+
+### Trade-off 3: un solo modelo global vs estrategia hibrida
+
+Un modelo unico simplifica mental model.
+Estrategia hibrida mejora fit por segmento.
+
+Criterio:
+- hibrido cuando hay segmentos enterprise y SMB con necesidades distintas.
+
+## Errores comunes (y por que pasan)
+
+- Elegir modelo por moda de arquitectura.
+- No incorporar `tenant_id` en indices claves.
+- Confiar solo en filtros de aplicacion sin RLS ni pruebas.
+- No planear migracion entre modelos.
+- Ignorar impacto de "noisy neighbor" en tenants grandes.
+
+La causa central es evitar decisiones explicitas de aislamiento temprano.
+
+## Checklist de arquitectura para este capitulo
+
+- [ ] El modelo de aislamiento esta documentado por criterio de negocio.
+- [ ] Existe politica de segmentacion de tenants.
+- [ ] Operaciones tenant-scoped usan `tenant_id` de forma obligatoria.
+- [ ] Se evalua RLS para tablas criticas.
+- [ ] Hay pruebas de no-contaminacion entre tenants.
+- [ ] Se monitorea ruido de rendimiento entre tenants.
+- [ ] Estrategia de migracion entre modelos esta definida.
+- [ ] Costos por modelo se revisan periodicamente.
+- [ ] Compliance y auditoria estan alineados al modelo elegido.
+
+## Estructura lista para expandir
+
+- Matriz de decision por modelo.
+- Politicas RLS por entidad.
+- Estrategia de migraciones multi-tenant.
+- Riesgos de fuga de datos.
+- Plan de transicion entre topologias de datos.

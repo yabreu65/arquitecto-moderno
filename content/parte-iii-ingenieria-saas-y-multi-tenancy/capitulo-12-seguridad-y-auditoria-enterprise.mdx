@@ -1,0 +1,167 @@
+---
+title: Capitulo 12 - Seguridad y Auditoria Enterprise
+description: Audit logging, cumplimiento y cifrado para entornos B2B.
+---
+
+# Capitulo 12 - Seguridad y Auditoria Enterprise
+
+## Contexto
+
+En clientes enterprise, seguridad y auditoria no son extras.
+Son condiciones minimas para vender, operar y renovar contratos.
+
+En este nivel, la pregunta no es "tenemos auth?".
+La pregunta real es:
+- podemos reconstruir exactamente que paso?
+- podemos probar aislamiento por tenant?
+- podemos demostrar cumplimiento ante auditoria externa?
+
+Sin eso, el producto queda fuera de deals grandes aunque funcione tecnicamente.
+
+## Que aprendera el lector
+
+- Audit logging por tenant.
+- Cifrado de datos en reposo.
+- Enfoque de cumplimiento sin matar productividad.
+- Como definir eventos auditables con valor legal y operativo.
+- Como equilibrar seguridad, performance y costo.
+
+## Introduccion tecnica
+
+Un sistema auditado debe poder responder que paso, quien lo hizo,
+cuando ocurrio y bajo que contexto de tenant.
+
+Seguridad enterprise no es una feature unica.
+Es una arquitectura de controles:
+- preventivos (acceso, cifrado)
+- detectivos (logs, alertas)
+- correctivos (respuesta a incidentes)
+
+Si una sola capa falla, las otras tienen que sostener trazabilidad.
+
+## Audit logging por tenant
+
+### Que debe registrar un evento auditable
+
+Minimo recomendado:
+- `tenant_id`
+- `actor` (`sub` o service account)
+- accion
+- recurso afectado
+- timestamp
+- resultado (success/failure)
+- `trace_id` o correlacion
+
+Sin estos campos, el log sirve para mirar, no para investigar.
+
+### Que operaciones auditar primero
+
+Prioridad alta:
+- cambios de permisos/roles
+- acceso a datos sensibles
+- configuraciones de seguridad
+- acciones administrativas
+- operaciones financieras
+
+No todo evento debe ser audit log.
+Pero todo evento de alto impacto debe serlo.
+
+## Cifrado de datos en reposo
+
+### Cifrado en DB y storage
+
+Niveles habituales:
+- cifrado de volumen/disco
+- cifrado de backups
+- cifrado de objetos en storage
+
+Para datos sensibles:
+- considerar cifrado de campo o tokenizacion
+
+### Gestion de llaves
+
+Error clasico: cifrar bien y gestionar claves mal.
+
+Buenas practicas:
+- usar KMS/HSM gestionado
+- rotacion periodica de keys
+- control estricto de acceso a material criptografico
+
+## Cumplimiento (compliance) pragmatico
+
+No conviertas compliance en burocracia infinita.
+Transformalo en controles concretos medibles.
+
+Ejemplos:
+- retencion de logs con politica definida
+- segregacion de ambientes
+- acceso privilegiado con aprobacion
+- evidencias automatizadas de controles
+
+Si todo depende de procesos manuales, escala mal y falla en auditoria real.
+
+## Deteccion y respuesta
+
+Audit logs sin alertas son historico, no defensa activa.
+
+Necesitas:
+- reglas de deteccion de eventos sospechosos
+- alertas por patron (accesos anormales, cambios masivos)
+- playbooks de incidente
+
+Tiempo de deteccion y tiempo de respuesta importan tanto como prevenir.
+
+## Trade-offs y criterios de decision
+
+### Trade-off 1: detalle de auditoria vs costo/ruido
+
+Loggear todo puede saturar costo y analisis.
+Loggear poco deja ciegos los incidentes.
+
+Criterio:
+- auditar por impacto de negocio y riesgo regulatorio.
+
+### Trade-off 2: cifrado profundo vs latencia operativa
+
+Mas cifrado puede subir latencia/complejidad.
+
+Criterio:
+- priorizar cifrado fuerte en datos sensibles y rutas de mayor riesgo.
+
+### Trade-off 3: compliance manual vs compliance automatizado
+
+Manual arranca rapido.
+Automatizado escala y reduce errores humanos.
+
+Criterio:
+- automatizar controles repetibles desde etapas tempranas.
+
+## Errores comunes (y por que pasan)
+
+- Auditoria sin `tenant_id` o sin actor identificable.
+- Logs sin integridad ni retencion definida.
+- Claves criptograficas en variables sin control de ciclo de vida.
+- Cumplimiento tratado solo como documento, no como controles.
+- Falta de playbooks para incidentes de seguridad.
+
+La causa frecuente: seguridad vista como "checklist de venta" y no como capacidad de plataforma.
+
+## Checklist de arquitectura para este capitulo
+
+- [ ] Eventos auditables criticos estan definidos por dominio.
+- [ ] Todo audit log relevante incluye `tenant_id`.
+- [ ] Existe correlacion de eventos con `trace_id`.
+- [ ] Datos en reposo y backups estan cifrados.
+- [ ] Gestion de llaves usa servicio especializado.
+- [ ] Politica de retencion de logs esta formalizada.
+- [ ] Alertas de seguridad cubren patrones criticos.
+- [ ] Hay playbook de respuesta a incidentes.
+- [ ] Compliance se valida con evidencia tecnica, no solo documentos.
+
+## Estructura lista para expandir
+
+- Modelo de eventos auditables.
+- Politicas de retencion y acceso.
+- Cifrado y gestion de llaves.
+- Checklist de compliance tecnico.
+- Protocolo de respuesta ante incidente por tenant.

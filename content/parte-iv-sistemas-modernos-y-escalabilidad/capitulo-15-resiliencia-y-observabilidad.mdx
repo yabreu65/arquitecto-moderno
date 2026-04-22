@@ -1,0 +1,158 @@
+---
+title: Capitulo 15 - Resiliencia y Observabilidad
+description: Circuit breakers, rate limiting y OpenTelemetry para operar en produccion.
+---
+
+# Capitulo 15 - Resiliencia y Observabilidad
+
+## Contexto
+
+Escalar es facil; escalar sin romper es otra historia.
+Resiliencia y observabilidad son capacidades obligatorias, no decoracion tecnica.
+
+Cuando el sistema crece, los fallos dejan de ser excepcion.
+Pasan a ser parte normal de la operacion.
+
+La diferencia entre plataforma madura y plataforma fragil no es evitar toda falla.
+Es detectar rapido, contener impacto y recuperar sin improvisar.
+
+## Que aprendera el lector
+
+- Circuit breakers y rate limiting.
+- Tracing, logs y metricas con OpenTelemetry.
+- Como transformar telemetria en decisiones operativas.
+- Como definir SLI/SLO en flujos criticos de negocio.
+- Como diseñar degradacion elegante bajo presion.
+
+## Introduccion tecnica
+
+Si no medimos latencia, errores y saturacion por flujo de negocio,
+solo reaccionamos tarde cuando el usuario ya sufrio impacto.
+
+Resiliencia sin observabilidad es ceguera.
+Observabilidad sin accion es decoracion.
+
+## Circuit breakers
+
+Circuit breaker protege tu sistema cuando una dependencia falla o se degrada.
+
+Estados clasicos:
+- closed
+- open
+- half-open
+
+Beneficio:
+- evita cascadas de timeout
+- preserva recursos locales
+- permite fallback controlado
+
+Sin circuit breaker, un servicio caido puede arrastrar todo el ecosistema.
+
+## Rate limiting
+
+Rate limiting no es castigo al cliente.
+Es control de capacidad para sostener estabilidad.
+
+En multi-tenant, conviene modelar limites por tenant:
+- evita que un tenant ruidoso degrade a todos
+- permite planes diferenciados por contrato
+
+Regla:
+- limites claros + respuesta explicita (`429`) + politica documentada.
+
+## Observabilidad con OpenTelemetry
+
+### Tres pilares operativos
+
+- trazas: seguimiento de requests y dependencias
+- metricas: salud cuantitativa (latencia, errores, saturacion)
+- logs: contexto explicativo de eventos
+
+OpenTelemetry permite estandarizar instrumentacion entre servicios.
+
+### Correlacion multi-tenant
+
+Toda telemetria relevante deberia incluir:
+- `trace_id`
+- `tenant_id`
+- `service_name`
+- `operation`
+
+Sin `tenant_id`, no podes entender impacto por cliente ni priorizar incidentes correctamente.
+
+## SLI/SLO para arquitectura
+
+No alcanza con "la app anda".
+Necesitas objetivos claros:
+- SLI: indicador (latencia p95, tasa de error)
+- SLO: objetivo (por ejemplo, 99.9% solicitudes < 300ms)
+
+Estos objetivos guian decisiones de capacity planning y prioridades tecnicas.
+
+## Degradacion elegante
+
+Cuando una dependencia falla, no siempre hay que devolver error total.
+
+Opciones:
+- respuesta parcial
+- fallback a datos cacheados
+- cola para procesamiento diferido
+
+Objetivo:
+- mantener experiencia util aun en modo degradado.
+
+## Trade-offs y criterios de decision
+
+### Trade-off 1: proteccion agresiva vs experiencia de usuario
+
+Rate limiting estricto protege infraestructura.
+Tambien puede bloquear uso legitimo.
+
+Criterio:
+- limites calibrados por comportamiento real y segmentacion de tenant.
+
+### Trade-off 2: telemetria completa vs costo operacional
+
+Instrumentar todo sube visibilidad.
+Tambien sube costo de storage/ingesta.
+
+Criterio:
+- priorizar flujos criticos y alta cardinalidad con gobernanza.
+
+### Trade-off 3: resiliencia local vs complejidad de fallback
+
+Mas fallback puede mejorar disponibilidad.
+Tambien aumenta ramas de comportamiento.
+
+Criterio:
+- fallback solo donde el valor de continuidad supera complejidad adicional.
+
+## Errores comunes (y por que pasan)
+
+- Monitorear infraestructura pero no flujos de negocio.
+- Trazas sin correlacion entre servicios.
+- Alertas sin accion definida.
+- Circuit breaker mal calibrado (abre tarde o siempre).
+- No incluir `tenant_id` en telemetria.
+
+La causa central: operar con metricas tecnicas aisladas del producto.
+
+## Checklist de arquitectura para este capitulo
+
+- [ ] Dependencias criticas usan circuit breakers.
+- [ ] Existen politicas de rate limiting por tenant cuando aplica.
+- [ ] Telemetria usa trazas, metricas y logs correlacionados.
+- [ ] `tenant_id` aparece en observabilidad relevante.
+- [ ] SLI/SLO estan definidos para flujos core.
+- [ ] Hay mecanismos de degradacion elegante documentados.
+- [ ] Alertas tienen owner y playbook asociado.
+- [ ] Se revisan p95/p99, no solo promedios.
+- [ ] Se ejecutan pruebas de resiliencia periodicas.
+
+## Estructura lista para expandir
+
+- Patrones de proteccion por endpoint.
+- Modelo de trazas distribuidas.
+- Tableros de salud por dominio.
+- Protocolo de respuesta a incidentes.
+- Estrategia de SLO por segmento de tenant.

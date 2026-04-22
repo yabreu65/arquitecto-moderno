@@ -1,0 +1,169 @@
+---
+title: Capitulo 19 - Antipatrones de Arquitectura
+description: Detectar Jumble, Stovepipe y Swiss Army Knife antes del colapso.
+---
+
+# Capitulo 19 - Antipatrones de Arquitectura
+
+## Contexto
+
+Los sistemas no se rompen por falta de buenas ideas, se rompen por antipatrones recurrentes.
+Aprender a detectarlos temprano ahorra meses de retrabajo.
+
+Un antipatron no aparece de un dia para otro.
+Se construye con decisiones pequenas repetidas:
+- urgencias sin criterio
+- ownership difuso
+- falta de limites
+
+El trabajo del arquitecto no es solo proponer patrones.
+Es reconocer desviaciones antes de que se vuelvan estructurales.
+
+## Que aprendera el lector
+
+- Senales de Jumble, Stovepipe y Swiss Army Knife.
+- Impacto real en costo, velocidad y calidad.
+- Estrategias de mitigacion por etapas.
+- Como priorizar refactors con impacto de negocio.
+- Como medir recuperacion arquitectonica.
+
+## Introduccion tecnica
+
+Nombrar antipatrones da lenguaje comun al equipo.
+Sin lenguaje comun, no hay plan tecnico que sobreviva.
+
+Cuando el equipo puede decir "esto es Stovepipe", deja de discutir sintomas y empieza a discutir causas.
+
+## Antipatron: Jumble
+
+Jumble es mezcla caotica de responsabilidades.
+
+Sintomas:
+- funciones gigantes con logica, acceso a datos y side effects
+- archivos con bajo cohesion
+- cambios pequenos con impacto impredecible
+
+Impacto:
+- testing lento
+- onboarding dificil
+- bugs de regresion frecuentes
+
+Correccion:
+- separar por casos de uso
+- extraer reglas de dominio
+- reducir alcance por modulo
+
+## Antipatron: Stovepipe
+
+Stovepipe son silos tecnicos que no integran bien entre si.
+
+Sintomas:
+- equipos duplicando capacidades
+- integraciones punto a punto fragiles
+- datos inconsistentes entre dominios
+
+Impacto:
+- baja reutilizacion
+- alto costo de coordinacion
+- visibilidad parcial del negocio
+
+Correccion:
+- contratos de integracion estandar
+- eventos de dominio compartidos
+- ownership claro por contexto
+
+## Antipatron: Swiss Army Knife
+
+Swiss Army Knife es un modulo que hace todo.
+
+Sintomas:
+- servicio central con decenas de responsabilidades
+- cualquier cambio pasa por el mismo equipo/componente
+- alto acoplamiento entrante y saliente
+
+Impacto:
+- cuello de botella organizacional
+- despliegues riesgosos
+- deuda tecnica exponencial
+
+Correccion:
+- dividir por capacidad de negocio
+- definir interfaces estables
+- mover responsabilidades gradualmente
+
+## Diagnostico arquitectonico continuo
+
+No esperes crisis para diagnosticar.
+
+Prcticas utiles:
+- revisiones de arquitectura por sprint
+- metricas de acoplamiento y dependencia
+- postmortems tecnicos sin culpa
+- backlog de deuda con prioridad real
+
+## Priorizacion de correcciones
+
+No se corrige todo al mismo tiempo.
+
+Matriz simple:
+- impacto en negocio
+- riesgo operativo
+- esfuerzo de correccion
+
+Empieza por lo que combina alto impacto y alto riesgo.
+
+## Trade-offs y criterios de decision
+
+### Trade-off 1: feature pressure vs salud arquitectonica
+
+Entregar features rapido puede ocultar deuda.
+Ignorar deuda compromete roadmap futuro.
+
+Criterio:
+- reservar capacidad fija para deuda critica.
+
+### Trade-off 2: refactor grande vs refactor incremental
+
+Big-bang suena limpio.
+Incremental suele ser mas viable y menos riesgoso.
+
+Criterio:
+- preferir slices pequenos con valor continuo.
+
+### Trade-off 3: estandarizacion vs autonomia de equipos
+
+Estandarizar reduce caos.
+Exceso de estandarizacion frena innovacion.
+
+Criterio:
+- estandarizar interfaces y principios, no cada detalle interno.
+
+## Errores comunes (y por que pasan)
+
+- Tratar antipatrones como opinion y no como evidencia.
+- Postergar deuda hasta "cuando haya tiempo".
+- Corregir sintomas sin atacar causa estructural.
+- No asignar owner de recuperacion arquitectonica.
+- Medir solo velocidad de entrega, no calidad de cambio.
+
+La causa de fondo: ausencia de gobernanza tecnica sostenida.
+
+## Checklist de arquitectura para este capitulo
+
+- [ ] Existe lenguaje comun de antipatrones.
+- [ ] Se monitorean indicadores de acoplamiento.
+- [ ] Cada antipatron detectado tiene owner y plan.
+- [ ] Se prioriza deuda por impacto y riesgo.
+- [ ] Hay capacidad de refactor en roadmap.
+- [ ] Postmortems capturan causas estructurales.
+- [ ] Se evitan refactors big-bang innecesarios.
+- [ ] Se miden mejoras despues de correcciones.
+- [ ] El equipo reconoce patrones antes de crisis.
+
+## Estructura lista para expandir
+
+- Catalogo de antipatrones.
+- Criterios de diagnostico.
+- Planes de correccion incremental.
+- Indicadores de recuperacion arquitectonica.
+- Matriz de priorizacion de deuda tecnica.

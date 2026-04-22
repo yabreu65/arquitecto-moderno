@@ -1,0 +1,189 @@
+---
+title: Capitulo 5 - El Arte del Desacoplamiento
+description: Modularidad, adapters, queues y workers para evolucion sostenible.
+---
+
+# Capitulo 5 - El Arte del Desacoplamiento
+
+## Contexto
+
+El codigo espagueti no falla de golpe: primero frena al equipo, despues rompe el negocio.
+Desacoplar es una estrategia de supervivencia y de velocidad sostenida.
+
+En SaaS B2B, los sistemas pasan por ciclos de crecimiento donde cambian:
+- volumen de datos
+- tipos de cliente
+- integraciones externas
+- requerimientos regulatorios
+
+Si la arquitectura esta acoplada a framework, ORM o proveedor puntual, cada cambio estructural se vuelve proyecto de crisis.
+El desacoplamiento no elimina complejidad: la organiza para que sea operable.
+
+## Que aprendera el lector
+
+- Detectar acoplamientos toxicos en sistemas en crecimiento.
+- Diseñar modularidad orientada a cambio.
+- Usar adapters para proteger el dominio de dependencias externas.
+- Aplicar queues y workers para desacoplar tiempos de procesamiento.
+- Decidir cuando conviene asincronia y cuando conviene flujo sincrono.
+
+## Introduccion tecnica
+
+Si el negocio depende directamente de frameworks y SDKs, cada upgrade se vuelve crisis.
+Los adapters convierten tecnologia volatile en detalle reemplazable.
+
+El desacoplamiento tiene dos dimensiones:
+- estructural: dependencias y fronteras entre modulos
+- temporal: cuando una operacion no debe bloquear otra (asincronia)
+
+Arquitectura madura trabaja ambas.
+
+## Dependencias y modularidad
+
+### Regla central: dependencias hacia adentro
+
+La logica de negocio debe ser la capa mas estable del sistema.
+Las dependencias tecnicas (DB, framework, APIs externas) deben apuntar hacia ella mediante interfaces, no al reves.
+
+Cuando pasa lo contrario, el dominio queda prisionero de detalles de implementacion.
+
+### Senales de acoplamiento toxico
+
+- Casos de uso importando clases de infraestructura.
+- Reglas de negocio mezcladas con DTOs de transporte.
+- Modulos que no pueden testearse sin base de datos real.
+- Cambiar proveedor externo implica tocar logica core.
+
+Si ves dos o mas de estas senales, ya hay deuda arquitectonica activa.
+
+### Fronteras modulares utiles
+
+No modularices por carpetas lindas.
+Modulariza por responsabilidad de negocio.
+
+Ejemplo:
+- `billing`
+- `tenant-management`
+- `energy-reports`
+
+Cada modulo define:
+- sus casos de uso
+- sus contratos de entrada/salida
+- sus dependencias permitidas
+
+## Adapters: prepararte para el cambio
+
+### Que resuelven
+
+Los adapters permiten conectar una interfaz de dominio con implementaciones tecnicas concretas.
+
+Ejemplo conceptual:
+- Puerto de dominio: `PaymentGateway`
+- Adapter 1: Stripe
+- Adapter 2: proveedor local/regional
+
+La logica de facturacion no cambia cuando cambia el proveedor.
+Solo cambia el adapter.
+
+### Donde mas valor aportan
+
+- Integraciones de pagos
+- servicios de identidad externa
+- providers de IA
+- sistemas de mensajeria
+
+Si una dependencia externa es estrategica y volátil, merece adapter.
+
+## Queues y workers (desacoplamiento temporal)
+
+### Por que importa
+
+No toda tarea debe ejecutarse durante la request HTTP.
+Hacerlo degrada latencia y aumenta fallos percibidos por usuario.
+
+Patron base:
+- request registra intencion
+- encola trabajo
+- worker procesa en segundo plano
+- sistema notifica estado final
+
+### Ejemplo SaaS
+
+Un tenant solicita reporte historico de consumo energetico de 5 anos.
+Generarlo on-request puede tardar segundos o minutos.
+
+Con queue + worker:
+- API responde rapido con `job_id`
+- worker procesa asincronamente
+- usuario consulta estado o recibe notificacion
+
+Esto mejora UX y estabilidad operativa.
+
+### BullMQ en NestJS (criterio arquitectonico)
+
+BullMQ no es solo libreria de colas.
+Es infraestructura de procesamiento diferido que requiere reglas claras:
+- idempotencia de jobs
+- politicas de retry
+- manejo de dead-letter scenarios
+- observabilidad de throughput y errores
+
+Sin estas reglas, la cola se convierte en cementerio de tareas.
+
+## Trade-offs y criterios de decision
+
+### Trade-off 1: simplicidad inicial vs evolucion futura
+
+Acoplar directo es rapido al principio.
+Desacoplar desde cero parece mas lento.
+
+Criterio:
+- componentes de vida corta: pragmatismo
+- componentes de negocio core: desacoplamiento desde el inicio
+
+### Trade-off 2: modularidad fina vs complejidad excesiva
+
+Demasiados modulos pueden fragmentar en exceso.
+Pocos modulos generan monolito rigido.
+
+Criterio:
+- modularizar por capacidad de negocio con ownership claro.
+
+### Trade-off 3: sincrono simple vs asincrono resiliente
+
+Sincrono es mas simple de razonar.
+Asincrono escala mejor cargas pesadas, pero exige mas gobernanza.
+
+Criterio:
+- operaciones criticas de respuesta inmediata: sincrono
+- tareas pesadas/no interactivas: queue + worker
+
+## Errores comunes (y por que pasan)
+
+- Usar interfaces sin limite de responsabilidades reales.
+- Crear adapters de mentira que igual filtran SDK al dominio.
+- Meter cualquier tarea en queue sin idempotencia.
+- No definir ownership de reintentos y fallos permanentes.
+- Confundir modularidad con microservicios prematuros.
+
+La raiz: aplicar patrones por moda en vez de por problema.
+
+## Checklist de arquitectura para este capitulo
+
+- [ ] Las dependencias de negocio apuntan hacia interfaces, no a SDKs concretos.
+- [ ] Cada modulo tiene responsabilidad de dominio clara.
+- [ ] Integraciones externas criticas usan adapter.
+- [ ] Casos de uso pueden testearse sin infraestructura real.
+- [ ] Tareas pesadas no bloquean requests interactivas.
+- [ ] Jobs en colas son idempotentes.
+- [ ] Existen politicas de retry y manejo de fallos permanentes.
+- [ ] Hay trazabilidad de `job_id` y estado por tenant.
+- [ ] No se introducen microservicios sin criterio de negocio y operacion.
+
+## Estructura lista para expandir
+
+- Mapa de dependencias permitidas por modulo.
+- Catalogo de adapters por integracion externa.
+- Guia de decision sincrono vs asincrono.
+- Playbook de queues y workers en NestJS (BullMQ).
+- Roadmap de desacoplamiento incremental para sistemas legacy.

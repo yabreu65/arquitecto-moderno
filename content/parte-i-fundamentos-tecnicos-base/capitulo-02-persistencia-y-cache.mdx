@@ -1,0 +1,201 @@
+---
+title: Capitulo 2 - Persistencia y Cache
+description: PostgreSQL, Prisma, Redis y estrategias de cache para SaaS B2B multi-tenant.
+---
+
+# Capitulo 2 - Persistencia y Cache: La Memoria del SaaS
+
+## Contexto
+
+La mayoria de los problemas graves de un SaaS no nacen en la UI.
+Nacen en la capa de datos: consultas lentas, bloqueos inesperados, cache inconsistente y decisiones de modelado que no escalan con el negocio.
+
+En equipos en crecimiento, suele pasar algo peligroso: se diseña el dominio con cuidado, pero la persistencia se trata como detalle operativo.
+Resultado: latencia inestable, costos crecientes y bugs de consistencia que aparecen justo cuando llegan clientes grandes.
+
+Como arquitecto, tenes que ver persistencia y cache como una sola disciplina.
+Persistencia define la verdad del sistema.
+Cache define la velocidad de acceso a esa verdad.
+Cuando ambas capas no estan coordinadas, el producto se vuelve impredecible.
+
+## Que aprendera el lector
+
+- Como usar PostgreSQL y Prisma con criterio de arquitectura, no solo de conveniencia.
+- Como detectar y corregir patrones de consultas costosas (incluyendo N+1).
+- Cuando Redis aporta valor real y cuando introduce deuda de consistencia.
+- Como modelar estrategias de cache para entornos multi-tenant.
+- Que checklist aplicar antes de publicar cambios de datos en produccion.
+
+## Introduccion tecnica
+
+Persistir bien no es solo guardar datos.
+Es definir integridad, concurrencia, costos de consulta y politicas de evolucion de esquema.
+
+Cachear bien tampoco es solo "poner Redis".
+Es diseñar una estrategia explicita de invalidacion, TTL y ownership de datos.
+
+Pensalo en capas:
+- PostgreSQL: fuente de verdad transaccional.
+- Prisma: capa de acceso tipada y productiva.
+- Redis: acelerador para lecturas repetitivas y costosas.
+
+Si cada capa tiene reglas distintas y no coordinadas, terminas con una plataforma rapida para devolver datos incorrectos.
+
+## PostgreSQL y Prisma (motores relacionales)
+
+### PostgreSQL como base de integridad
+
+PostgreSQL te da una base robusta para SaaS B2B:
+- transacciones confiables
+- constraints fuertes
+- indices avanzados
+- capacidades analiticas crecientes
+
+Pero nada de eso te salva de malas decisiones de modelado.
+Si el esquema no refleja el dominio, vas a compensar con logica ad hoc en servicios, y eso escala mal.
+
+Regla de arquitecto:
+- integridad critica -> constraint en base
+- regla de negocio cambiante -> capa de aplicacion
+
+### Prisma: velocidad con guardrails, no piloto automatico
+
+Prisma acelera desarrollo por tipado y DX excelente, especialmente en TypeScript.
+Eso es buenisimo para equipos de producto.
+El problema aparece cuando se asume que cualquier consulta generada por el ORM es eficiente.
+
+Un arquitecto no discute si Prisma "sirve".
+Discute como asegurar que Prisma no degrade bajo carga.
+
+Practica obligatoria:
+- revisar consultas criticas con `EXPLAIN` o `EXPLAIN ANALYZE`
+- monitorear latencia por query class
+- definir limites de cardinalidad por endpoint
+
+### N+1 queries: el enemigo silencioso
+
+El patron N+1 aparece cuando haces una consulta inicial y luego una por cada item relacionado.
+Con pocos datos parece inocente.
+Con 10k registros puede destruir tu p95.
+
+Senales tipicas:
+- picos de latencia en listados
+- consumo de DB desproporcionado
+- impacto mayor cuando crece un tenant grande
+
+Mitigaciones:
+- joins o includes controlados
+- batch loading
+- precomputacion para vistas de lectura pesadas
+
+## Caching y Redis
+
+### Cuando cachear (y cuando no)
+
+Cachea cuando tenes datos:
+- muy leidos
+- poco mutados
+- costosos de recomputar
+
+Ejemplos en SaaS:
+- configuracion por tenant
+- matriz de permisos RBAC estable
+- catálogos operativos de baja mutacion
+
+No cachees cuando:
+- la consistencia fuerte es obligatoria y no tenes invalidacion confiable
+- la tasa de escritura es tan alta que el cache oscila sin aportar
+- no podes explicar quien invalida, cuando y por que
+
+### Redis como acelerador, no como fuente de verdad
+
+Redis debe ser una capa derivada.
+La verdad sigue en PostgreSQL.
+
+Si Redis pasa a ser verdad de facto, vas a sufrir:
+- divergencia de estados
+- bugs no deterministas
+- recuperaciones operativas complejas
+
+### Estrategia recomendada: cache-aside
+
+Patron base:
+1. Leer cache.
+2. Si miss, leer DB.
+3. Guardar resultado en cache con TTL.
+4. Devolver respuesta.
+
+Para escrituras:
+- actualizas DB
+- invalidas claves relevantes
+
+No es perfecto, pero es comprensible y operable.
+
+### Caching en multi-tenant: aislamiento obligatorio
+
+Nunca construyas keys sin contexto de tenant.
+
+Mal:
+- `config:reports`
+
+Bien:
+- `tenant:{tenant_id}:config:reports`
+
+Si no aislas keys por `tenant_id`, el riesgo de fuga de datos entre tenants deja de ser teorico y pasa a ser un incidente esperando suceder.
+
+## Trade-offs y criterios de decision
+
+### Trade-off 1: velocidad de entrega vs control de consultas
+
+Prisma te deja iterar rapido.
+Pero sin observabilidad de queries, el costo aparece en produccion.
+
+Criterio:
+- para flujos core de negocio, toda consulta relevante se valida con plan de ejecucion.
+
+### Trade-off 2: cache agresivo vs consistencia
+
+Mas cache puede bajar latencia.
+Tambien puede subir inconsistencia si invalidas mal.
+
+Criterio:
+- cachear solo dominios con reglas claras de invalidez y tolerancia de staleness aceptada.
+
+### Trade-off 3: esquema flexible vs gobernanza de datos
+
+Flexibilidad excesiva al inicio simplifica cambios rapidos.
+Despues complica migraciones y auditoria.
+
+Criterio:
+- diseñar esquema con horizonte de evolucion, no solo para el sprint actual.
+
+## Errores comunes (y por que pasan)
+
+- Confiar ciegamente en el ORM sin inspeccionar consultas reales.
+- Cachear por impulso sin definir ownership de invalidacion.
+- Ignorar cardinalidad por tenant en endpoints de lectura.
+- Usar la misma key de cache para todos los tenants.
+- No tener estrategia de migracion de esquema en releases.
+- Medir solo promedio de latencia y no p95/p99.
+
+La raiz es la misma: tratar datos como detalle tecnico en vez de activo arquitectonico.
+
+## Checklist de arquitectura para este capitulo
+
+- [ ] El modelo relacional refleja entidades y relaciones del dominio.
+- [ ] Queries criticas se evaluan con `EXPLAIN` o `EXPLAIN ANALYZE`.
+- [ ] Existe plan para detectar y mitigar N+1 queries.
+- [ ] Redis se usa como acelerador y no como fuente de verdad.
+- [ ] Politicas de cache incluyen TTL e invalidacion explicita.
+- [ ] Todas las keys de cache relevantes incluyen `tenant_id`.
+- [ ] Hay monitoreo de latencia p95/p99 para lecturas criticas.
+- [ ] Migraciones de esquema tienen estrategia de rollout y rollback.
+- [ ] Se documenta el trade-off de consistencia vs performance por dominio.
+
+## Estructura lista para expandir
+
+- Politica de modelado relacional por bounded context.
+- Matriz de consultas criticas con plan de ejecucion.
+- Estrategia de cache-aside por modulo de negocio.
+- Convencion oficial de keys multi-tenant con `tenant_id`.
+- Protocolo de incidentes por inconsistencia de cache.

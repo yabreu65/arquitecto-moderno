@@ -1,0 +1,66 @@
+---
+title: Guia editorial
+description: Convenciones de escritura para mantener consistencia tecnica y de tono.
+---
+
+# Guia editorial del libro
+
+Documento interno para mantener consistencia de lenguaje, estructura y nivel tecnico en todo el contenido de **El Arquitecto Moderno**.
+
+## 1) Terminologia canonica
+
+- Usar siempre `tenant` (no usar inquilino/inquilinos).
+- Usar siempre `tenant_id` para identificador de tenant.
+- Usar `tenant context` para el contexto de tenancy en request/servicios.
+- Mantener `multi-tenant` con guion.
+- Mantener `RBAC`, `JWT`, `RAG`, `LLM` en mayusculas.
+
+## 2) Estructura obligatoria por capitulo
+
+Cada capitulo debe incluir estos bloques, en este orden:
+
+1. `## Contexto`
+2. `## Que aprendera el lector`
+3. `## Introduccion tecnica`
+4. `## Estructura lista para expandir`
+
+No saltear encabezados ni cambiar sus nombres salvo decision editorial explicita.
+
+## 3) Tono y nivel tecnico
+
+- Tono: profesional, sobrio, directo, sin marketing vacio.
+- Nivel: arquitecto senior orientado a SaaS B2B real.
+- Explicar *por que* y *trade-offs*, no solo *que hacer*.
+- Priorizar decisiones reversibles vs irreversibles cuando aplique.
+- Siempre conectar tecnica con impacto en negocio/operacion.
+
+## 4) Estilo de redaccion
+
+- Frases claras y cortas.
+- Evitar anglicismos innecesarios salvo terminos canonicos del dominio.
+- Evitar tecnicismos sin contexto en el primer uso.
+- Usar listas para criterios y checklists.
+- Evitar parrafos largos (maximo recomendado: 3 a 4 lineas).
+
+## 5) Convenciones de naming
+
+- Slugs de archivos: minusculas + guiones.
+- Prefijo de capitulo: `capitulo-XX-...` con dos digitos.
+- Partes: `parte-i-*`, `parte-ii-*`, etc.
+- Mantener correspondencia exacta entre nombre de archivo y `_meta.ts`.
+
+## 6) Reglas de calidad minima antes de publicar un capitulo
+
+- El capitulo conserva la estructura obligatoria.
+- No hay mezcla de `tenant` con sinonimos.
+- Se explican al menos 2 trade-offs reales.
+- Se incluye al menos 1 criterio de decision aplicable en produccion.
+- Sidebar y slugs estan alineados.
+
+## 7) Checklist rapido del autor
+
+- [ ] Use `tenant`, `tenant_id` y `tenant context` de forma consistente.
+- [ ] Mantuve el orden de secciones canonicas.
+- [ ] Inclui decisiones de arquitectura y trade-offs.
+- [ ] Evite tutorialismo superficial.
+- [ ] El contenido escala a contexto B2B y multi-tenant.

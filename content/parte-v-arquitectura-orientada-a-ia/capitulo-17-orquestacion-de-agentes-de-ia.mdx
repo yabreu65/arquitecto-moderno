@@ -1,0 +1,169 @@
+---
+title: Capitulo 17 - Orquestacion de Agentes de IA
+description: Patrones de supervisor, network y custom para tareas complejas.
+---
+
+# Capitulo 17 - Orquestacion de Agentes de IA
+
+## Contexto
+
+Un solo agente generalista suele fallar en tareas compuestas.
+Orquestar agentes especializados mejora control, calidad y trazabilidad.
+
+En sistemas reales, una sola cadena de prompts no alcanza para procesos complejos:
+- multiples fuentes de datos
+- validaciones intermedias
+- decisiones con impacto operativo
+
+La orquestacion de agentes permite dividir problema, delegar subtareas y sintetizar resultados con mayor confiabilidad.
+En entornos SaaS B2B, cada flujo debe preservar tenant context para evitar acciones cruzadas entre tenants.
+
+## Que aprendera el lector
+
+- Patrones supervisor, network y custom.
+- Delegacion de sub-tareas.
+- Sintesis de respuestas multi-agente.
+- Como controlar contexto, permisos y costos por agente.
+- Como evitar loops y decisiones no seguras.
+
+## Introduccion tecnica
+
+Orquestacion no es mas prompts: es diseno de flujo, estados y contratos de colaboracion.
+Sin eso, el sistema se vuelve impredecible y caro.
+
+Diseñar orquestacion implica responder:
+- quien decide
+- quien ejecuta
+- como se validan resultados
+- cuando se detiene el flujo
+
+## Patron Supervisor
+
+Un agente supervisor coordina agentes especialistas.
+
+Ventajas:
+- control central de estrategia
+- trazabilidad de decisiones
+
+Riesgos:
+- cuello de botella en el supervisor
+- dependencia fuerte de su calidad
+
+Ideal cuando necesitas governance fuerte y control operacional.
+
+## Patron Network
+
+Agentes se comunican entre si con mayor autonomia.
+
+Ventajas:
+- flexibilidad
+- distribucion de carga cognitiva
+
+Riesgos:
+- mayor complejidad emergente
+- dificil debug si no hay trazabilidad robusta
+
+Ideal para tareas exploratorias o colaborativas complejas.
+
+## Patron Custom
+
+Combinas reglas del dominio con orquestacion especifica del negocio.
+
+Ventajas:
+- ajuste fino a procesos reales
+- mejor alineacion con restricciones de empresa
+
+Riesgos:
+- mayor esfuerzo de diseno y mantenimiento
+
+Ideal para procesos core de alto impacto.
+
+## Delegacion de sub-tareas
+
+Delegar bien requiere contrato:
+- objetivo de la sub-tarea
+- contexto permitido
+- herramientas habilitadas
+- criterio de aceptacion
+
+Sin contrato, delegar se vuelve loteria.
+
+## Seguridad y control de herramientas
+
+Cada agente con tools es potencial accion en produccion.
+
+Reglas recomendadas:
+- principio de minimo privilegio por agente
+- whitelist de acciones permitidas
+- validacion humana para acciones criticas
+- auditoria por tool call
+
+No todo agente debe tener acceso a todo.
+
+## Gestion de estado y memoria
+
+Sin estado controlado:
+- se repiten tareas
+- se pierde contexto
+- crece costo de tokens
+
+Estrategia:
+- memoria corta por ejecucion
+- memoria larga curada por caso de uso
+- limites de contexto por etapa
+
+## Trade-offs y criterios de decision
+
+### Trade-off 1: autonomia de agentes vs gobernanza
+
+Mas autonomia puede resolver mas casos.
+Tambien aumenta riesgo operativo.
+
+Criterio:
+- mayor impacto de accion -> mayor control y validacion.
+
+### Trade-off 2: especializacion vs complejidad de coordinacion
+
+Mas agentes especializados suben calidad puntual.
+Tambien suben costo de orquestacion.
+
+Criterio:
+- dividir solo cuando aporta mejora medible.
+
+### Trade-off 3: velocidad de respuesta vs validacion robusta
+
+Validar mas agrega latencia.
+Validar menos aumenta riesgo.
+
+Criterio:
+- calibrar segun criticidad del flujo.
+
+## Errores comunes (y por que pasan)
+
+- Delegar sin criterio de aceptacion.
+- Dar permisos excesivos a agentes.
+- No controlar loops de ejecucion.
+- Falta de trazabilidad por decision intermedia.
+- Medir solo calidad textual y no costo/seguridad.
+
+La raiz es diseñar agentes como demo y no como componente de plataforma.
+
+## Checklist de arquitectura para este capitulo
+
+- [ ] Patron de orquestacion (supervisor/network/custom) esta explicitado.
+- [ ] Cada agente tiene rol y limites claros.
+- [ ] Tooling usa minimo privilegio.
+- [ ] Existen criterios de aceptacion por sub-tarea.
+- [ ] Se controla loops y maximo de iteraciones.
+- [ ] Hay trazabilidad de decisiones y tool calls.
+- [ ] Estado/memoria estan gobernados por politica.
+- [ ] Flujos criticos tienen validacion adicional.
+- [ ] Se monitorean costo, latencia y tasa de error por agente.
+
+## Estructura lista para expandir
+
+- Definicion de roles de agentes.
+- Protocolo de delegacion.
+- Evaluacion de resultados parciales.
+- Estrategia de fallback humano.
+- Politica de permisos por herramienta y agente.

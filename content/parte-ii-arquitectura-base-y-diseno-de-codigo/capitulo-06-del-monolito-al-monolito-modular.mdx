@@ -1,0 +1,176 @@
+---
+title: Capitulo 6 - Del Monolito al Monolito Modular
+description: Estructura profesional en NestJS, bounded contexts y crecimiento sin caos.
+---
+
+# Capitulo 6 - Del Monolito al Monolito Modular
+
+## Contexto
+
+No todo sistema debe nacer en microservicios. Un monolito modular bien hecho
+te da velocidad inicial sin hipotecar la evolucion.
+
+El problema aparece cuando el monolito se convierte en un deposito de features.
+Sin fronteras de dominio, cada modulo toca todo y cada deploy aumenta riesgo.
+
+En SaaS B2B multi-tenant, ese caos escala peor:
+- mas clientes
+- mas reglas por tenant
+- mas integraciones
+- mas deuda en rutas criticas
+
+La salida no es microservicios tempranos.
+La salida es disciplina de modularidad dentro del monolito.
+
+## Que aprendera el lector
+
+- Estructura de carpetas profesional para NestJS.
+- Bounded Contexts y fronteras de dominio.
+- Criterios para crecer sin sobre-fragmentar.
+- Reglas de dependencia para evitar acoplamiento circular.
+- Senales para decidir cuando extraer un servicio.
+
+## Introduccion tecnica
+
+El objetivo no es separar por tecnologias, sino por responsabilidades de negocio.
+Ese diseno permite que los modulos evolucionen con menor friccion.
+
+Un monolito modular sano se parece mas a una ciudad ordenada que a un edificio unico:
+- barrios definidos (contextos)
+- vias controladas (contratos)
+- infraestructura comun (cross-cutting)
+
+Cuando no existe este orden, el costo cognitivo supera la velocidad inicial.
+
+## Estructura de carpetas profesional
+
+### Patron recomendado en NestJS
+
+Un esquema base orientado a dominio:
+
+- `src/modules/<dominio>/application`
+- `src/modules/<dominio>/domain`
+- `src/modules/<dominio>/infrastructure`
+- `src/modules/<dominio>/interface`
+
+No es obligatorio el naming exacto.
+Lo obligatorio es que el equipo entienda donde vive cada tipo de responsabilidad.
+
+### Que no hacer
+
+- Carpeta global `services` con todo mezclado.
+- Modulos por tecnologia (`controllers`, `repositories`) sin contexto de negocio.
+- Shared gigante para reglas de dominio.
+
+Eso genera acoplamiento horizontal y ownership difuso.
+
+## Bounded Contexts y fronteras de dominio
+
+### Por que bounded context
+
+Bounded context no es teoria de DDD para slides.
+Es una herramienta para poner limites a significado, reglas y datos.
+
+Ejemplo en SaaS:
+- `tenant-management`
+- `billing`
+- `energy-reports`
+
+Cada contexto define su lenguaje, entidades y casos de uso.
+
+### Contratos entre contextos
+
+Los contextos se hablan por contratos explicitos:
+- eventos
+- interfaces de aplicacion
+- API interna
+
+No por imports directos de clases internas.
+
+Regla:
+- si para usar otro contexto necesitas conocer su estructura interna, la frontera esta rota.
+
+## Reglas de dependencia (arquitectura viva)
+
+### Dependencias permitidas
+
+- `interface` -> `application`
+- `application` -> `domain`
+- `infrastructure` implementa puertos definidos por `application/domain`
+
+### Dependencias prohibidas
+
+- `domain` importando framework o ORM
+- `application` dependiendo de DTOs HTTP
+- contexto A accediendo directo a repos de contexto B
+
+Estas reglas evitan que una decision local rompa la arquitectura global.
+
+## De monolito modular a servicios (cuando corresponde)
+
+No extraigas microservicios por moda.
+Extrae cuando hay evidencia:
+
+- distinta curva de escalado por modulo
+- ciclo de despliegue bloqueado por dependencias cruzadas
+- requisitos regulatorios/aislamiento fuertes
+- ownership de equipo claramente separado
+
+Si no tenes estas senales, un monolito modular sigue siendo mejor opcion.
+
+## Trade-offs y criterios de decision
+
+### Trade-off 1: velocidad inicial vs gobernanza modular
+
+Sin reglas, arrancas rapido.
+Pero cada iteracion cuesta mas.
+
+Criterio:
+- invertir temprano en fronteras y dependencias minimas.
+
+### Trade-off 2: shared libraries vs duplicacion controlada
+
+Reutilizar todo en shared parece eficiente.
+Frecuentemente acopla contextos.
+
+Criterio:
+- duplicacion pequena y local puede ser mas barata que coupling global.
+
+### Trade-off 3: microservicios tempranos vs monolito modular
+
+Microservicios prometen independencia.
+Tambien multiplican complejidad operativa.
+
+Criterio:
+- primero modularidad interna,
+- luego extraccion selectiva con evidencia.
+
+## Errores comunes (y por que pasan)
+
+- Separar por capas tecnicas en vez de por dominio.
+- Permitir imports cruzados sin control entre modulos.
+- Crear contextos demasiado grandes por miedo a dividir.
+- Hacer shared utilitario sin curadoria.
+- Saltar a microservicios para esconder deuda de modularidad.
+
+La raiz: confundir estructura de carpetas con arquitectura real.
+
+## Checklist de arquitectura para este capitulo
+
+- [ ] Los modulos estan definidos por capacidad de negocio.
+- [ ] Existe frontera explicita entre contextos.
+- [ ] Hay reglas de dependencia permitidas y prohibidas.
+- [ ] El dominio no depende de framework ni ORM.
+- [ ] Los contratos entre contextos son explicitos.
+- [ ] No hay shared package con logica de negocio ambigua.
+- [ ] Se monitorean acoplamientos circulares.
+- [ ] Hay criterios documentados para extraer microservicios.
+- [ ] El modelo soporta crecimiento multi-tenant sin mezclar dominios.
+
+## Estructura lista para expandir
+
+- Mapa oficial de bounded contexts del producto.
+- Politica de imports y dependencias por modulo.
+- Catalogo de contratos inter-contexto (sync/async).
+- Indicadores de salud de modularidad.
+- Playbook para extraccion segura de servicios.

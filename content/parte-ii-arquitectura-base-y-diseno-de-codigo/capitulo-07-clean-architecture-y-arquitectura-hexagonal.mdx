@@ -1,0 +1,173 @@
+---
+title: Capitulo 7 - Clean Architecture y Arquitectura Hexagonal
+description: Dominio puro, puertos, adaptadores y orquestacion de casos de uso en NestJS.
+---
+
+# Capitulo 7 - Clean Architecture y Arquitectura Hexagonal
+
+## Contexto
+
+Cuando el framework domina el diseno, la logica de negocio queda cautiva.
+La arquitectura debe proteger el dominio de decisiones de infraestructura.
+
+En proyectos SaaS, el problema se repite:
+- al principio todo fluye
+- luego cambia DB, cambia proveedor, cambia flujo de negocio
+- el core queda atado a detalles tecnicos imposibles de mover
+
+Clean y hexagonal evitan ese secuestro del dominio.
+
+## Que aprendera el lector
+
+- Rol de capa de dominio, aplicacion e infraestructura.
+- Casos de uso como orquestadores del negocio.
+- Como tratar NestJS como detalle de implementacion.
+- Como definir puertos de entrada y salida con criterio.
+- Como testear la logica core sin infraestructura real.
+
+## Introduccion tecnica
+
+Clean y hexagonal no son moda: son mecanismos para aislar logica de negocio,
+probarla mejor y cambiar infraestructura sin reescribir el core.
+
+La idea clave:
+- el dominio decide
+- la aplicacion coordina
+- la infraestructura ejecuta
+
+Cuando esta jerarquia se invierte, el sistema envejece rapido.
+
+## Dominio: logica de negocio pura
+
+### Que vive en dominio
+
+- entidades
+- value objects
+- invariantes
+- reglas de negocio
+
+El dominio no sabe de HTTP, NestJS, Prisma ni colas.
+Sabe del negocio y sus restricciones.
+
+### Beneficio real
+
+Si el dominio esta limpio:
+- podes testear reglas en milisegundos
+- podes cambiar infraestructura sin romper reglas
+- podes discutir negocio sin ruido tecnico
+
+## Aplicacion: casos de uso y orquestacion
+
+### Rol de la capa de aplicacion
+
+La aplicacion no inventa reglas de negocio.
+Orquesta el flujo:
+- valida entrada del caso
+- invoca reglas de dominio
+- usa puertos para persistencia/integraciones
+- devuelve resultado de negocio
+
+Un caso de uso bien definido se lee como historia de negocio ejecutable.
+
+### Error comun
+
+Meter logica de negocio en services de framework.
+Eso rompe separacion y complica mantenimiento.
+
+## Infraestructura: NestJS como detalle
+
+### Que significa "detalle"
+
+No significa despreciar NestJS.
+Significa no dejar que NestJS defina el dominio.
+
+NestJS resuelve muy bien:
+- adaptadores HTTP
+- DI
+- modulos
+- interceptors/guards
+
+Pero esas capacidades deben envolver el core, no reemplazarlo.
+
+### Puertos y adaptadores
+
+Patron:
+- dominio/aplicacion define puertos (interfaces)
+- infraestructura implementa adaptadores concretos
+
+Ejemplo:
+- puerto: `TenantRepository`
+- adapter: PrismaTenantRepository
+
+Si cambias Prisma por otro mecanismo, cambias adapter, no caso de uso.
+
+## Testing por capas
+
+### Estrategia pragmatica
+
+- Dominio: pruebas unitarias puras
+- Aplicacion: pruebas de casos de uso con dobles de puertos
+- Infraestructura: pruebas de integracion con recursos reales
+
+Esto reduce costo de testing y aumenta confianza en cambios.
+
+### Anti-patron
+
+Hacer todo e2e para compensar falta de diseno por capas.
+Funciona un tiempo, despues explota en tiempo de ejecucion y mantenimiento.
+
+## Trade-offs y criterios de decision
+
+### Trade-off 1: simplicidad aparente vs arquitectura sostenible
+
+Programar directo en controllers parece simple.
+A mediano plazo es caro.
+
+Criterio:
+- flujos de negocio core merecen casos de uso explicitos.
+
+### Trade-off 2: pureza extrema vs pragmatismo
+
+Sobre-ingenieria tambien es riesgo.
+
+Criterio:
+- aplicar capas con foco en dominios de alto cambio/impacto,
+- no convertir cada helper en tratado arquitectonico.
+
+### Trade-off 3: velocidad de feature vs estabilidad del core
+
+Saltar capas acelera un sprint.
+Rompe consistencia en tres meses.
+
+Criterio:
+- proteger core aunque implique mas disciplina inicial.
+
+## Errores comunes (y por que pasan)
+
+- Confundir DTO con entidad de dominio.
+- Inyectar ORM en dominio.
+- Crear interfaces sin uso real (abstraccion vacia).
+- Duplicar logica en controllers y services.
+- No definir ownership de reglas por capa.
+
+La raiz: usar nombres de patrones sin aplicar sus limites.
+
+## Checklist de arquitectura para este capitulo
+
+- [ ] Entidades y reglas core viven fuera de framework.
+- [ ] Casos de uso coordinan flujo, no controllers.
+- [ ] Puertos de salida estan definidos por aplicacion/dominio.
+- [ ] Adaptadores de infraestructura implementan esos puertos.
+- [ ] Cambiar framework no obliga reescribir dominio.
+- [ ] Se prueba dominio sin DB ni red.
+- [ ] Se prueba aplicacion con dobles de puertos.
+- [ ] Integraciones reales tienen pruebas de infraestructura.
+- [ ] La arquitectura soporta crecimiento multi-tenant sin contaminar reglas.
+
+## Estructura lista para expandir
+
+- Catalogo de entidades y value objects por contexto.
+- Mapa de casos de uso y puertos asociados.
+- Guia de implementacion de adaptadores en NestJS.
+- Estrategia de testing por capa con ejemplos.
+- Matriz de decisiones de arquitectura (cuanto desacoplar segun riesgo).

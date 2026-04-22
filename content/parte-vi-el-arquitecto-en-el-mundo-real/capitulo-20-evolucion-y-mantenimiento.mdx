@@ -1,0 +1,160 @@
+---
+title: Capitulo 20 - Evolucion y Mantenimiento
+description: Del monolito modular a microservicios y ciclo de vida del tenant.
+---
+
+# Capitulo 20 - Evolucion y Mantenimiento
+
+## Contexto
+
+La arquitectura madura no es estatica.
+Debe permitir evolucion controlada desde monolito modular hacia modelos distribuidos cuando haya justificacion.
+
+Cerrar un libro de arquitectura sin hablar de mantenimiento seria incompleto.
+La realidad no es el diagrama inicial.
+La realidad es sostener el sistema durante anos de cambios de negocio, equipo y tecnologia.
+
+Evolucionar bien significa mover estructura sin perder continuidad operativa.
+
+## Que aprendera el lector
+
+- Criterios para evolucionar a microservicios.
+- Onboarding y offboarding automatizado de tenants.
+- Estrategias de mantenimiento sostenible.
+- Como definir hitos de evolucion arquitectonica medibles.
+- Como evitar migraciones destructivas por ansiedad tecnica.
+
+## Introduccion tecnica
+
+Evolucionar bien es reducir riesgo sin frenar negocio.
+Cada paso necesita observabilidad, contratos claros y plan de reversibilidad.
+
+Arquitectura sostenible combina tres dimensiones:
+- tecnica (calidad, performance, resiliencia)
+- operativa (deploy, incidentes, soporte)
+- organizacional (ownership, equipos, procesos)
+
+Si una dimension se ignora, la evolucion queda incompleta.
+
+## Del monolito modular a microservicios
+
+### Cuando evolucionar
+
+Senales fuertes:
+- modulos con escalado muy distinto
+- ciclos de release bloqueados por dependencias internas
+- equipos con ownership ya separado por dominios
+- requerimientos de aislamiento legal u operativo
+
+Si estas senales no existen, microservicios pueden aumentar complejidad sin retorno.
+
+### Como evolucionar sin romper
+
+Patron pragmatcio:
+1. identificar modulo candidato con frontera clara
+2. definir contrato estable
+3. extraer gradualmente con coexistencia
+4. instrumentar latencia, errores y costo
+5. retirar dependencias antiguas
+
+Evitar corte big-bang salvo casos excepcionales.
+
+## Ciclo de vida del tenant
+
+### Onboarding automatizado
+
+Debe incluir:
+- provision de configuracion inicial
+- politicas de seguridad base
+- asignacion de planes y limites
+- auditoria de alta
+
+### Offboarding automatizado
+
+Debe incluir:
+- desactivacion de acceso
+- retencion de datos segun politica
+- borrado/anonimizacion cuando corresponda
+- evidencia de cumplimiento
+
+Sin offboarding serio, compliance y costo de datos se degradan.
+
+## Mantenimiento preventivo
+
+No esperes incidentes para actuar.
+
+Prcticas clave:
+- actualizacion planificada de dependencias
+- revisiones de performance periodicas
+- pruebas de resiliencia recurrentes
+- limpieza de deuda en backlog continuo
+
+Mantenimiento no es tarea secundaria.
+Es parte de la entrega de valor.
+
+## Gobernanza de evolucion
+
+Toda evolucion significativa debe tener:
+- objetivo de negocio
+- KPI tecnico
+- owner responsable
+- plan de rollback
+- ventana de evaluacion
+
+Sin gobernanza, la evolucion se convierte en coleccion de cambios inconexos.
+
+## Trade-offs y criterios de decision
+
+### Trade-off 1: estabilidad actual vs inversion futura
+
+Mantener todo igual reduce riesgo corto plazo.
+Postergar evolucion aumenta riesgo estructural.
+
+Criterio:
+- invertir cuando evidencia muestra cuello de botella recurrente.
+
+### Trade-off 2: migracion rapida vs control de riesgo
+
+Migrar rapido puede parecer eficiente.
+Sin etapas, el riesgo operacional sube.
+
+Criterio:
+- preferir migracion incremental con metricas de exito por fase.
+
+### Trade-off 3: automatizacion total vs complejidad operativa
+
+Automatizar onboarding/offboarding mejora consistencia.
+Tambien exige diseno cuidadoso.
+
+Criterio:
+- automatizar primero procesos repetitivos de alto riesgo humano.
+
+## Errores comunes (y por que pasan)
+
+- Extraer microservicios por tendencia de mercado.
+- No definir contratos antes de dividir componentes.
+- Onboarding manual con pasos no auditables.
+- Offboarding incompleto sin politica de datos.
+- Ausencia de KPI para medir mejora real.
+
+La causa suele ser confundir cambio tecnico con evolucion arquitectonica.
+
+## Checklist de arquitectura para este capitulo
+
+- [ ] Existe roadmap de evolucion por dominios.
+- [ ] Se extran servicios solo con evidencia clara.
+- [ ] Migraciones se planifican en fases con rollback.
+- [ ] Onboarding de tenant esta automatizado y auditado.
+- [ ] Offboarding tiene politicas de retencion y borrado.
+- [ ] KPI tecnicos y de negocio miden resultados de evolucion.
+- [ ] Mantenimiento preventivo tiene cadencia definida.
+- [ ] Ownership de cada iniciativa es explicito.
+- [ ] Cambios arquitectonicos se revisan post-implementacion.
+
+## Estructura lista para expandir
+
+- Hoja de ruta de evolucion arquitectonica.
+- Automatizacion del ciclo de vida del tenant.
+- Politicas de mantenimiento preventivo.
+- Gobernanza y mejora continua.
+- Matriz de decision para extraccion de microservicios.

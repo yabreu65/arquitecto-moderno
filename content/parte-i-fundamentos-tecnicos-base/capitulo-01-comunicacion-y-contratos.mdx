@@ -1,0 +1,236 @@
+---
+title: Capitulo 1 - Comunicacion y Contratos
+description: REST, diseno de APIs, versionado, proxies y load balancing para SaaS B2B multi-tenant.
+---
+
+# Capitulo 1 - Comunicacion y Contratos: El Idioma del Sistema
+
+## Contexto
+
+Toda plataforma SaaS seria vive o muere por su capacidad de comunicacion.
+No importa si tenes buena UI, buena base de datos o buen equipo: si el contrato de tu API es ambiguo, inestable o acoplado a implementaciones internas, el sistema se vuelve fragil.
+
+En productos B2B esto pega mas fuerte.
+No estas sirviendo solo tu frontend: estas sirviendo integraciones externas, ERPs, CRMs, automatizaciones internas del cliente y procesos criticos de negocio.
+Romper un contrato API no rompe solo una pantalla: puede romper operaciones enteras de un cliente enterprise.
+
+Por eso, como arquitecto, tu primera responsabilidad es definir un idioma tecnico que sea consistente, predecible, versionable, observable y evolutivo.
+Ese idioma se construye con REST bien aplicado, semantica HTTP correcta, criterios de versionado y una capa de entrada robusta (proxies y load balancing).
+
+## Que aprendera el lector
+
+- Que significa disenar una API como contrato de plataforma, no como lista de endpoints.
+- Como aplicar semantica HTTP para evitar inconsistencias y deuda de integracion.
+- Como elegir una estrategia de versionado segun madurez y perfil de clientes.
+- Que rol cumplen reverse proxy y load balancer en escalabilidad y seguridad.
+- Como bajar estas decisiones a un SaaS multi-tenant sin contaminar contexto entre tenants.
+
+## Introduccion tecnica
+
+REST no es "usar JSON con HTTP".
+REST es un estilo arquitectonico basado en recursos, representaciones y una interfaz uniforme.
+Cuando se aplica bien, desacopla consumidores de implementacion interna.
+Cuando se aplica mal, genera APIs que parecen REST por fuera pero son RPC disfrazado.
+
+El objetivo no es pureza academica.
+El objetivo es tener contratos que sobrevivan cambios de negocio, crecimiento de usuarios y evolucion del producto.
+
+Pensalo asi:
+- El dominio cambia.
+- La implementacion cambia.
+- La infraestructura cambia.
+- El contrato publico debe cambiar lo minimo posible y de forma controlada.
+
+Esa es la diferencia entre API funcional y API de plataforma.
+
+## REST y diseno de APIs
+
+### REST y recursos
+
+Disenar APIs por recursos implica modelar entidades del negocio, no acciones tecnicas.
+
+Ejemplo:
+- Bien: `GET /buildings/{id}/energy-reports`
+- Mal: `POST /generateEnergyReportNow`
+
+El primer caso expresa un recurso y permite evolucionar representaciones.
+El segundo caso acopla al cliente a un workflow interno especifico.
+
+### Semantica HTTP (no negociable)
+
+Usar bien los verbos reduce ambiguedad y mejora interoperabilidad:
+
+- `GET`: lectura, sin efectos colaterales.
+- `POST`: creacion o accion no idempotente.
+- `PUT`: reemplazo idempotente de un recurso.
+- `PATCH`: actualizacion parcial.
+- `DELETE`: eliminacion (idealmente idempotente).
+
+Y los codigos de estado importan:
+
+- `200`/`201`/`204` para exito segun caso.
+- `400` para request invalida.
+- `401` para no autenticado.
+- `403` para autenticado sin permisos.
+- `404` para recurso inexistente.
+- `409` para conflicto de estado.
+- `422` para error de validacion semantica.
+- `429` para rate limiting.
+
+Si devolves `200` para todo, eliminas capacidad de diagnostico y rompes contratos operativos.
+
+### Errores como contrato formal
+
+Los errores tambien son parte del contrato.
+No alcanza con un string suelto.
+
+Formato recomendado (ejemplo conceptual):
+
+```json
+{
+  "error": "TENANT_ACCESS_DENIED",
+  "message": "El usuario no tiene acceso a este tenant.",
+  "trace_id": "a7f4b2c1d9e8",
+  "details": {
+    "tenant_id": "tenant_123",
+    "required_permission": "reports:read"
+  }
+}
+```
+
+Esto te permite debugging rapido, soporte mas eficiente, observabilidad por tipo de error y automatizacion de retries o workflows en clientes.
+
+## Versionado de APIs: criterio de arquitecto
+
+En SaaS B2B, versionar no es opcional.
+Es una politica de compatibilidad con impacto comercial.
+
+### Estrategias comunes
+
+- Versionado por ruta: `/v1/...`, `/v2/...`
+  - Pro: simple de entender y documentar.
+  - Contra: puede duplicar superficie rapidamente.
+
+- Versionado por header: `Accept-Version: 2`
+  - Pro: URL limpia y flexible.
+  - Contra: mas dificil de operar y debuggear sin tooling maduro.
+
+- Negociacion por content type:
+  - Pro: elegante para casos avanzados.
+  - Contra: complejidad operativa y curva de adopcion mas alta.
+
+### Regla practica
+
+- Si estas en etapa de crecimiento con integraciones variadas: empeza por versionado en ruta.
+- Si ya tenes gobierno de APIs maduro y gateway fuerte: podes evolucionar a headers.
+- Evita estrategia mixta sin reglas porque termina siendo deuda invisible.
+
+### Criterio de negocio
+
+No se versiona por gusto tecnico.
+Se versiona para introducir cambios incompatibles sin romper clientes actuales, deprecar funcionalidades con ventana de migracion y negociar SLA de evolucion con clientes enterprise.
+
+## Proxies y Load Balancing
+
+### Que resuelven en serio
+
+Sin capa de entrada:
+- Expones directamente servicios internos.
+- Mezclas concerns de seguridad con logica de negocio.
+- Limitas escalado horizontal.
+
+Con reverse proxy y load balancer:
+- Centralizas TLS/SSL.
+- Unificas politicas de seguridad.
+- Distribuis trafico entre instancias.
+- Mejoras disponibilidad ante fallos parciales.
+
+### L4 vs L7 (resumen de arquitecto)
+
+- L4 (transporte): enruta por IP/puerto, muy eficiente.
+- L7 (aplicacion): enruta por host/path/headers, mas inteligente.
+
+En SaaS multi-tenant normalmente necesitas capacidades L7 para decisiones por dominio/subdominio y politicas avanzadas.
+
+### Aplicacion SaaS multi-tenant
+
+Patron habitual:
+1. El cliente entra por `tenant-a.tu-plataforma.com`.
+2. El gateway resuelve `tenant` por host.
+3. Se propaga `tenant_id` como contexto confiable hacia la aplicacion.
+4. Toda capa posterior valida acceso y aislamiento en base a ese contexto.
+
+Esto evita inferencias debiles dentro de cada modulo y reduce riesgo de contaminacion cruzada.
+
+## Caso real simplificado (mental model)
+
+Imaginemos BuildingOS:
+
+1. Request entra por `acme.buildingos.com`.
+2. Proxy valida TLS y aplica rate limit.
+3. Gateway resuelve `tenant_id = acme`.
+4. Backend valida JWT y permisos RBAC.
+5. Servicio consulta datos filtrando por `tenant_id`.
+6. Respuesta incluye `trace_id` para auditoria y soporte.
+
+Si en cualquier punto se pierde `tenant context`, el sistema pasa de escalable a peligroso.
+
+## Trade-offs y criterios de decision
+
+### Trade-off 1: rapidez vs robustez de contrato
+
+En etapa inicial, el equipo quiere iterar rapido.
+Sin contrato estable, iteras rapido al principio y lento para siempre.
+
+Criterio:
+- Endpoint nuevo: velocidad.
+- Endpoint usado por terceros: gobernanza estricta.
+
+### Trade-off 2: versionado simple vs flexible
+
+Ruta (`/v1`) simplifica adopcion.
+Header versioning da mas flexibilidad pero pide madurez operativa.
+
+Criterio:
+- Menos madurez de clientes e integraciones: ruta.
+- Alta madurez + gateway robusto: headers.
+
+### Trade-off 3: logica en app vs inteligencia en gateway
+
+Poner todo en app simplifica infraestructura.
+Poner reglas en gateway mejora consistencia transversal.
+
+Criterio:
+- Reglas transversales (auth baseline, rate limiting, routing): gateway.
+- Reglas de dominio: aplicacion.
+
+## Errores comunes (y por que pasan)
+
+- Disenar endpoints por pantalla de frontend en vez de por dominio.
+- Mezclar `401` y `403` como si fueran lo mismo.
+- Cambiar contratos en caliente sin versionado ni deprecacion.
+- No incluir `trace_id` en respuestas de error.
+- Resolver tenant de forma ad hoc en cada modulo.
+- Confiar en "el frontend no mandaria eso" como control de seguridad.
+
+Todos estos errores nacen de la misma raiz: falta de contrato explicito y gobierno tecnico.
+
+## Checklist de arquitectura para este capitulo
+
+- [ ] Cada endpoint representa un recurso de dominio, no una accion interna.
+- [ ] Verbos HTTP y codigos de estado respetan semantica estandar.
+- [ ] Error payload es consistente y observable (`error`, `message`, `trace_id`).
+- [ ] Estrategia de versionado definida y documentada.
+- [ ] Existe politica de deprecacion y ventana de migracion.
+- [ ] Reverse proxy o API gateway centralizan TLS, routing y controles base.
+- [ ] `tenant` se resuelve temprano y se propaga como `tenant context`.
+- [ ] No hay consultas de datos sin filtro por `tenant_id` cuando aplica.
+- [ ] Hay trazabilidad para soporte y auditoria en incidentes.
+
+## Estructura lista para expandir
+
+- Politica formal de diseno de APIs del libro (naming, errores, versionado).
+- Matriz de decision de versionado segun tipo de cliente.
+- Patron de propagacion de `tenant context` en NestJS.
+- Guia de observabilidad API-first (logs, metricas, trazas, SLO).
+- Estrategia de hardening en gateway para entornos enterprise.

@@ -1,0 +1,189 @@
+---
+title: Capitulo 9 - Estrategias de Versionado de APIs
+description: Path, headers y content negotiation para evolucionar APIs sin romper clientes.
+---
+
+# Capitulo 9 - Estrategias de Versionado de APIs
+
+## Contexto
+
+Toda API cambia. La pregunta es si esos cambios se vuelven previsibles o una fuente constante de ruptura para clientes.
+
+En SaaS B2B, romper una API no es un bug menor.
+Puede frenar facturacion de un cliente, detener integraciones criticas o degradar confianza comercial.
+
+Versionar bien no es un detalle tecnico.
+Es una capacidad de producto para evolucionar sin romper el ecosistema.
+
+## Que aprendera el lector
+
+- URI Path vs headers vs negociacion de contenido.
+- Costos de mantenimiento por estrategia.
+- Como elegir segun tipo y tamano de cliente.
+- Como disenar deprecacion y migracion como proceso operativo.
+- Como combinar versionado con observabilidad de uso.
+
+## Introduccion tecnica
+
+Versionar bien es gestionar compatibilidad, no solo poner `/v2`.
+Una estrategia correcta balancea velocidad interna y estabilidad externa.
+
+Principio clave:
+- los cambios incompatibles se introducen en nueva version
+- los cambios compatibles se mantienen en la version actual
+
+Sin esta disciplina, el equipo entra en una zona gris donde nadie sabe que contrato esta vigente.
+
+## Estrategias principales
+
+### Versionado por URI path
+
+Ejemplo:
+- `/api/v1/reports`
+- `/api/v2/reports`
+
+Ventajas:
+- muy visible para clientes
+- facil de documentar
+- simple de enrutar en gateways
+
+Costos:
+- duplicacion de handlers
+- riesgo de divergencia entre versiones
+
+Es una gran opcion para equipos con clientes de madurez dispar.
+
+### Versionado por headers
+
+Ejemplo:
+- `Accept-Version: 2`
+
+Ventajas:
+- URL estable
+- mas flexible para evolucion fina
+
+Costos:
+- mas dificil de inspeccionar en logs y debugging manual
+- requiere tooling y observabilidad mas madura
+
+Funciona muy bien cuando tenes plataforma API consolidada.
+
+### Negociacion por content type
+
+Ejemplo conceptual:
+- `Accept: application/vnd.buildingos.reports.v2+json`
+
+Ventajas:
+- versionado expresivo por representacion
+
+Costos:
+- complejidad alta para muchos clientes
+- curva de adopcion y soporte mayor
+
+Suele reservarse para ecosistemas API avanzados.
+
+## Criterio de seleccion por contexto
+
+No hay estrategia universal.
+Hay estrategia adecuada a etapa y tipo de cliente.
+
+Regla practica:
+- producto en expansion y clientes heterogeneos -> path
+- plataforma madura y gateway robusto -> headers
+- escenarios especializados de representacion -> content negotiation
+
+## Deprecacion y ciclo de vida
+
+Versionar sin deprecar formalmente es deuda encubierta.
+
+Politica minima recomendable:
+- anunciar deprecacion con fecha
+- ofrecer guia de migracion
+- medir adopcion por version
+- definir fecha de retiro (sunset)
+
+Si no hay fechas, la version vieja se vuelve eterna.
+
+## Observabilidad de versiones
+
+Necesitas saber:
+- que version usa cada cliente
+- cuanto trafico tiene cada version
+- que errores por version aparecen
+
+Sin esta data, cualquier retiro de version es una apuesta.
+
+Instrumentacion minima:
+- metricas por version
+- logs con `api_version` y `tenant_id`
+- dashboards de adopcion
+
+## Backward compatibility (criterio operativo)
+
+Cambios compatibles comunes:
+- agregar campos opcionales
+- agregar endpoints nuevos
+
+Cambios incompatibles comunes:
+- renombrar campos existentes
+- cambiar tipo de dato
+- modificar semantica de negocio
+
+Regla:
+- si dudas sobre compatibilidad, trata el cambio como breaking y versiona.
+
+## Trade-offs y criterios de decision
+
+### Trade-off 1: evolucion rapida vs estabilidad contractual
+
+Cambiar sin versionar acelera sprint corto.
+Destruye confianza de clientes en mediano plazo.
+
+Criterio:
+- contratos externos se gobiernan con rigor, no con urgencia.
+
+### Trade-off 2: una sola version viva vs coexistencia larga
+
+Mantener solo ultima version simplifica mantenimiento.
+Puede ser inviable para clientes enterprise con ciclos lentos.
+
+Criterio:
+- definir ventana de soporte por version segun segmento de cliente.
+
+### Trade-off 3: simplicidad de path vs elegancia de headers
+
+Path es claro y operativo.
+Headers es mas limpio pero exige madurez.
+
+Criterio:
+- elegir la opcion que el ecosistema actual puede operar bien.
+
+## Errores comunes (y por que pasan)
+
+- Versionar por impulso sin politica de ciclo de vida.
+- Romper contrato en minor changes.
+- Mantener versiones viejas sin ownership.
+- No comunicar deprecaciones con tiempo.
+- No medir adopcion por version y por tenant.
+
+La causa principal: tratar versionado como problema de routing y no de producto.
+
+## Checklist de arquitectura para este capitulo
+
+- [ ] Existe estrategia de versionado oficial (path/header/content-type).
+- [ ] Cambios breaking tienen nueva version.
+- [ ] Politica de deprecacion tiene fechas y responsables.
+- [ ] Hay guias de migracion para clientes.
+- [ ] Observabilidad incluye `api_version` y `tenant_id`.
+- [ ] Dashboards muestran adopcion por version.
+- [ ] Se evita duplicacion innecesaria entre versiones.
+- [ ] Contratos y ejemplos estan documentados por version.
+- [ ] Soporte comercial conoce el ciclo de vida de APIs.
+
+## Estructura lista para expandir
+
+- Matriz completa de versionado por tipo de API.
+- Politica formal de deprecacion y sunset.
+- Checklist de backward compatibility por release.
+- Plantilla de guia de migracion para clientes enterprise.
+- Tablero de adopcion por version y tenant.

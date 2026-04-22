@@ -1,0 +1,164 @@
+---
+title: Capitulo 8 - El Patron Repository en NestJS
+description: Repositories y mappers para desacoplar dominio de Prisma o TypeORM en NestJS.
+---
+
+# Capitulo 8 - El Patron Repository en NestJS
+
+## Contexto
+
+Si el dominio conoce Prisma o TypeORM, quedas atado al ORM para siempre.
+El patron repository protege la logica de negocio de esa dependencia.
+
+En SaaS multi-tenant, este punto es aun mas critico.
+Persistencia no es solo guardar datos: es filtrar por `tenant_id`, proteger integridad y sostener performance bajo carga.
+
+Si el dominio se contamina de detalles ORM, cada ajuste de datos impacta todo el sistema.
+
+## Que aprendera el lector
+
+- Como abstraer acceso a datos con repositories.
+- Uso de mappers para transformar datos entre capas.
+- Criterios para evitar repositories anemicos o excesivos.
+- Como incorporar reglas multi-tenant en contratos de persistencia.
+- Como testear casos de uso sin dependencias reales de base.
+
+## Introduccion tecnica
+
+Repository no elimina complejidad, la encapsula donde corresponde.
+La clave es definir contratos que expresen intencion de negocio.
+
+Un repository bien diseniado no habla de tablas.
+Habla del lenguaje del dominio.
+
+Mappers, por su parte, evitan que estructuras de persistencia se filtren al core.
+
+## Repository: contratos de persistencia del dominio
+
+### Que deberia exponer un repository
+
+Metodos orientados a intencion de negocio:
+- `findByTenantAndId(tenantId, id)`
+- `save(aggregate)`
+- `findPendingInvoices(tenantId, period)`
+
+No metodos genericos sin contexto (`findAll`, `updateAny`) para todo.
+
+### Reglas para multi-tenant
+
+Todo acceso de datos sensible debe recibir `tenant_id` explicito o inferido desde `tenant context` seguro.
+
+Si un repository permite consultas sin contexto de tenant en rutas tenant-scoped, hay riesgo de fuga de datos.
+
+### Repositories anemicos vs inflados
+
+Anemico:
+- solo wrappers triviales del ORM
+
+Inflado:
+- demasiada logica de negocio dentro del repository
+
+Equilibrio:
+- repository encapsula acceso a datos y invariantes de persistencia
+- negocio permanece en dominio/aplicacion
+
+## Mappers: traducir sin contaminar
+
+### Por que necesitas mappers
+
+Modelos ORM y entidades de dominio no tienen por que ser iguales.
+
+El mapper convierte:
+- `PersistenceModel -> DomainEntity`
+- `DomainEntity -> PersistenceModel`
+
+Esto evita:
+- filtrar campos tecnicos al dominio
+- acoplar reglas a nombres de columna
+- propagar cambios de esquema a todo el sistema
+
+### Reglas practicas
+
+- mappers deterministas y simples
+- sin llamadas a red o logica externa
+- pruebas unitarias especificas del mapper
+
+## Implementacion en NestJS (enfoque pragmatico)
+
+Patron comun:
+- Puerto en capa de aplicacion/dominio
+- Clase adapter en infraestructura (`PrismaXRepository`)
+- Provider Nest que inyecta implementacion concreta
+
+El caso de uso depende del puerto, no del adapter.
+
+## Testing de repository pattern
+
+### Tres niveles utiles
+
+- Test de caso de uso con fake repository
+- Test de mapper puro
+- Test de integracion del adapter con DB real o entorno controlado
+
+Esto permite alta velocidad de feedback sin perder confianza en integraciones.
+
+### Senal de mala arquitectura
+
+Si para probar un caso de uso necesitas levantar toda la base, el desacoplamiento no esta funcionando.
+
+## Trade-offs y criterios de decision
+
+### Trade-off 1: velocidad de acceso directo ORM vs abstraer con repository
+
+Ir directo al ORM es rapido al inicio.
+A mediano plazo complica cambios de proveedor y testing.
+
+Criterio:
+- flujos core y de alto impacto -> repository explicito.
+
+### Trade-off 2: mapeo estricto vs simplicidad
+
+Mapear todo agrega codigo.
+No mapear nada agrega acoplamiento.
+
+Criterio:
+- mapear entidades de dominio y limites criticos,
+- evitar sobre-mapeo en casos triviales internos.
+
+### Trade-off 3: contrato rico vs contrato generico
+
+Contratos genericos parecen reutilizables.
+Suelen ocultar intencion de negocio.
+
+Criterio:
+- priorizar metodos orientados a caso de uso.
+
+## Errores comunes (y por que pasan)
+
+- Exponer ORM client desde repository.
+- Mezclar logica de dominio en consultas SQL complejas sin capa de aplicacion.
+- Omitir `tenant_id` en filtros criticos.
+- Repositories genericos para todos los agregados.
+- Mappers con logica lateral o efectos colaterales.
+
+La raiz es siempre la misma: ahorrar diseno ahora para pagar complejidad luego.
+
+## Checklist de arquitectura para este capitulo
+
+- [ ] Los casos de uso dependen de puertos, no de ORM.
+- [ ] Repositories expresan intencion de dominio.
+- [ ] Operaciones tenant-scoped consideran siempre `tenant_id`.
+- [ ] Mappers separan claramente dominio y persistencia.
+- [ ] Los mappers tienen pruebas unitarias.
+- [ ] El adapter de infraestructura tiene pruebas de integracion.
+- [ ] No hay fuga de tipos ORM hacia dominio.
+- [ ] Se controla performance de consultas criticas.
+- [ ] El diseno soporta cambio de proveedor de persistencia.
+
+## Estructura lista para expandir
+
+- Catalogo de puertos repository por modulo.
+- Guia de adaptadores Prisma y TypeORM.
+- Estandar de mappers por agregado.
+- Matriz de pruebas (unitarias, integracion, contrato).
+- Politica tenant-aware para consultas de datos.

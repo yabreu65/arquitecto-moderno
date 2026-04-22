@@ -1,0 +1,169 @@
+---
+title: Capitulo 13 - Event-Driven Architecture (EDA)
+description: Domain events, comunicacion asincrona y brokers modernos.
+---
+
+# Capitulo 13 - Event-Driven Architecture (EDA)
+
+## Contexto
+
+Cuando el acoplamiento sincrono domina, cada servicio hereda la fragilidad del otro.
+EDA permite desacoplar tiempos, responsabilidades y escalabilidad.
+
+En plataformas SaaS, el crecimiento no solo sube volumen.
+Sube tambien el numero de procesos que deben coordinarse sin bloquearse entre si.
+
+Si todo depende de llamadas sincronas en cadena:
+- aumenta latencia global
+- cae resiliencia ante fallos parciales
+- se reduce autonomia de equipos
+
+EDA introduce desacoplamiento temporal y funcional para sostener evolucion.
+
+## Que aprendera el lector
+
+- Domain events como contratos de negocio.
+- Comunicacion asincrona entre modulos.
+- Tradeoffs entre RabbitMQ y Kafka.
+- Como diseñar eventos versionables y observables.
+- Como evitar caos eventual en sistemas distribuidos.
+
+## Introduccion tecnica
+
+Eventos bien diseniados habilitan evolucion independiente.
+Eventos mal diseniados crean caos distribuido dificil de depurar.
+
+EDA no es "poner un broker".
+Es un modelo de comunicacion que requiere:
+- ownership de eventos
+- semantica estable
+- idempotencia
+- trazabilidad end-to-end
+
+## Domain events como contrato
+
+Un domain event representa un hecho del negocio ya ocurrido.
+
+Ejemplos:
+- `tenant.created`
+- `invoice.paid`
+- `report.generated`
+
+Regla:
+- nombrar eventos por significado de dominio, no por detalle tecnico.
+
+Si publicas `db_row_inserted`, nadie entiende impacto de negocio.
+
+## Diseno de eventos
+
+### Campos minimos recomendados
+
+- `event_id`
+- `event_type`
+- `occurred_at`
+- `tenant_id` (cuando aplica)
+- `trace_id`
+- payload de negocio versionado
+
+### Versionado de eventos
+
+Eventos cambian.
+Tu estrategia debe tolerar consumidores desfasados temporalmente.
+
+Practicas utiles:
+- agregar campos opcionales en vez de romper payload
+- mantener compatibilidad durante ventana definida
+- introducir nueva version solo para cambios incompatibles
+
+## RabbitMQ vs Kafka (resumen pragmatico)
+
+RabbitMQ:
+- fuerte en enrutamiento flexible y colas tradicionales
+- simple para workloads de task processing
+
+Kafka:
+- excelente para alto throughput y retencion de eventos
+- ideal para streams y replay de historial
+
+Criterio:
+- workflow transaccional y task queue -> RabbitMQ
+- plataforma event-streaming a gran escala -> Kafka
+
+No elijas por moda.
+Elige por patron de consumo y operacion.
+
+## Entrega y consistencia
+
+No existe "exactly once" gratis en sistemas reales.
+Lo comun y pragmatcio es:
+- at-least-once delivery
+- consumidores idempotentes
+
+Si no diseñas idempotencia, los reintentos te rompen estado.
+
+## Observabilidad en EDA
+
+Necesitas trazar:
+- evento publicado
+- consumidor ejecutado
+- resultado
+- latencia por etapa
+
+Sin correlacion (`trace_id` + `event_id`), debuggear incidentes distribuidos se vuelve loteria.
+
+## Trade-offs y criterios de decision
+
+### Trade-off 1: simplicidad sincrona vs resiliencia asincrona
+
+Sincrono es mas directo.
+Asincrono escala mejor desacoplando dependencias.
+
+Criterio:
+- procesos no criticos en tiempo real -> asincrono
+- validaciones obligatorias de respuesta inmediata -> sincrono
+
+### Trade-off 2: granularidad de eventos vs ruido operacional
+
+Eventos demasiado finos generan ruido.
+Eventos demasiado gruesos pierden utilidad.
+
+Criterio:
+- modelar eventos por hitos de negocio relevantes.
+
+### Trade-off 3: throughput vs gobernanza
+
+Publicar eventos es facil.
+Gobernarlos en el tiempo es lo dificil.
+
+Criterio:
+- catalogo de eventos + ownership + versionado formal.
+
+## Errores comunes (y por que pasan)
+
+- Publicar eventos sin schema claro.
+- Consumidores no idempotentes.
+- Omitir `tenant_id` en eventos tenant-scoped.
+- Elegir broker por hype.
+- Falta de observabilidad cross-service.
+
+La raiz es adoptar EDA como tecnologia y no como disciplina de arquitectura.
+
+## Checklist de arquitectura para este capitulo
+
+- [ ] Eventos tienen significado de dominio claro.
+- [ ] Payload incluye metadatos de correlacion.
+- [ ] Eventos tenant-scoped incluyen `tenant_id`.
+- [ ] Hay estrategia de versionado de eventos.
+- [ ] Consumidores son idempotentes.
+- [ ] Retries y fallos permanentes estan modelados.
+- [ ] Broker elegido responde al patron de carga real.
+- [ ] Observabilidad cubre publisher, broker y consumer.
+- [ ] Existe catalogo de eventos con ownership.
+
+## Estructura lista para expandir
+
+- Taxonomia de eventos del dominio.
+- Garantias de entrega.
+- Idempotencia y orden de eventos.
+- Observabilidad de flujos EDA.
+- Politica de versionado de eventos por dominio.
