@@ -35,6 +35,10 @@ const meta = {
   "parte-vi-el-arquitecto-en-el-mundo-real": {
     title: "Parte VI - El Arquitecto en el Mundo Real",
   },
+  "parte-vii-operacion-enterprise-y-ai-runtime": {
+    title:
+      "Parte VII - Operacion Enterprise, Platform Engineering y AI Runtime (Nivel 5)",
+  },
 };
 
 export default meta;

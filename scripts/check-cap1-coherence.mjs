@@ -479,6 +479,95 @@ const chapters = [
       "rollback",
     ],
   },
+  {
+    name: "Capitulo 21",
+    path: "content/parte-vii-operacion-enterprise-y-ai-runtime/capitulo-21-sre-operativo-y-error-budgets.mdx",
+    minLines: 120,
+    requiredHeadings: [
+      "## Contexto",
+      "## Que aprendera el lector",
+      "## Introduccion tecnica",
+      "## Trade-offs y criterios de decision",
+      "## Checklist de arquitectura para este capitulo",
+      "## Estructura lista para expandir",
+    ],
+    requiredTerms: [
+      "sli",
+      "slo",
+      "error budget",
+      "burn rate",
+      "mttr",
+      "runbook",
+      "tenant_id",
+    ],
+  },
+  {
+    name: "Capitulo 22",
+    path: "content/parte-vii-operacion-enterprise-y-ai-runtime/capitulo-22-contratos-asincronos-y-consistencia-distribuida.mdx",
+    minLines: 120,
+    requiredHeadings: [
+      "## Contexto",
+      "## Que aprendera el lector",
+      "## Introduccion tecnica",
+      "## Trade-offs y criterios de decision",
+      "## Checklist de arquitectura para este capitulo",
+      "## Estructura lista para expandir",
+    ],
+    requiredTerms: [
+      "outbox",
+      "cdc",
+      "idempotencia",
+      "saga",
+      "schema",
+      "event",
+      "tenant_id",
+    ],
+  },
+  {
+    name: "Capitulo 23",
+    path: "content/parte-vii-operacion-enterprise-y-ai-runtime/capitulo-23-platform-engineering-y-golden-paths.mdx",
+    minLines: 120,
+    requiredHeadings: [
+      "## Contexto",
+      "## Que aprendera el lector",
+      "## Introduccion tecnica",
+      "## Trade-offs y criterios de decision",
+      "## Checklist de arquitectura para este capitulo",
+      "## Estructura lista para expandir",
+    ],
+    requiredTerms: [
+      "platform engineering",
+      "golden path",
+      "idp",
+      "scorecard",
+      "developer experience",
+      "tenant",
+      "control plane",
+    ],
+  },
+  {
+    name: "Capitulo 24",
+    path: "content/parte-vii-operacion-enterprise-y-ai-runtime/capitulo-24-evaluacion-continua-y-operacion-de-ia.mdx",
+    minLines: 120,
+    requiredHeadings: [
+      "## Contexto",
+      "## Que aprendera el lector",
+      "## Introduccion tecnica",
+      "## Trade-offs y criterios de decision",
+      "## Checklist de arquitectura para este capitulo",
+      "## Estructura lista para expandir",
+    ],
+    requiredTerms: [
+      "eval",
+      "safety",
+      "cost",
+      "drift",
+      "rollback",
+      "agent",
+      "tenant_id",
+      "tool call",
+    ],
+  },
 ];
 
 function fail(message) {
@@ -519,6 +608,6 @@ for (const chapter of chapters) {
 
 if (!process.exitCode) {
   console.log(
-    "OK: Capitulos 1 al 20 consistentes con guia editorial y cobertura tecnica.",
+    "OK: Capitulos 1 al 24 consistentes con guia editorial y cobertura tecnica.",
   );
 }

@@ -1,0 +1,184 @@
+---
+title: Capitulo 24 - Evaluacion Continua y Operacion de IA
+description: Evals de calidad, safety y costo para operar agentes en produccion con gobernanza.
+---
+
+# Capitulo 24 - Evaluacion Continua y Operacion de IA
+
+## Contexto
+
+En sistemas AI-native, desplegar un agente no es el final.
+Es el inicio de un ciclo operativo continuo.
+
+Si no evaluas comportamiento en runtime:
+- sube costo sin control
+- baja calidad en silencio
+- aparecen riesgos de safety
+- el producto pierde confiabilidad percibida
+
+Arquitectura moderna de IA exige evaluacion continua como capability de plataforma.
+
+## Que aprendera el lector
+
+- Como diseñar evals de calidad, safety y cost.
+- Como detectar drift de comportamiento en prompts y modelos.
+- Como gobernar promociones y rollback de versiones de agente.
+- Como observar tool calls con evidencia por `tenant_id`.
+- Como integrar evaluacion en CI/CD y runtime.
+
+## Introduccion tecnica
+
+No hay IA enterprise sin tres ejes medidos simultaneamente:
+- quality
+- safety
+- cost
+
+Si optimizas uno y no los otros dos, degradas el sistema.
+
+La unidad de gestion no es solo el modelo.
+Es el workflow completo: prompt, retrieval, tool call, salida y efecto.
+
+## Eval harness como baseline
+
+Eval harness = suite reproducible de escenarios criticos.
+
+Incluye:
+- casos de exito funcional
+- casos adversariales de safety
+- casos de costo/latencia en carga
+- casos multi-tenant con aislamiento estricto
+
+Sin harness, cada cambio se valida por intuicion.
+
+## Quality evals
+
+Mide si el agente resuelve la tarea correctamente.
+
+Metricas comunes:
+- task success rate
+- precision/recall en flujos de retrieval
+- completitud de respuesta por caso de uso
+
+La calidad debe medirse por capability, no por demo aislada.
+
+## Safety evals
+
+Safety no es filtro cosmetico al final.
+Es politica transversal.
+
+Casos minimos:
+- intento de exfiltracion entre tenants
+- ejecucion de tool no autorizada
+- contenido riesgoso/regulatorio
+- leakage de datos sensibles
+
+Cada falla de safety debe quedar auditada con `trace_id`.
+
+## Cost evals y token governance
+
+Costo de IA se gobierna por presupuesto, no por sorpresa mensual.
+
+Mediciones clave:
+- tokens por flujo
+- costo por capability
+- costo por `tenant_id` y plan
+- costo por tool call
+
+Sin visibilidad de costo, no hay modelo sostenible de negocio AI-native.
+
+## Drift y regresion continua
+
+Drift puede venir por:
+- cambios de modelo
+- cambios de prompt
+- cambios de contexto RAG
+- cambios de tools externas
+
+Controles recomendados:
+- baseline congelada de escenarios
+- comparacion A/B de versiones
+- alertas de degradacion sobre umbral
+
+## Promocion y rollback de agentes
+
+No promociones por entusiasmo.
+Promove por criterios.
+
+Pipeline recomendado:
+1. eval offline en dataset curado
+2. canary controlado en porcentaje de trafico
+3. observacion de quality/safety/cost
+4. promotion o rollback
+
+Rollback debe poder revertir:
+- modelo
+- prompt
+- configuracion de tools
+- politicas de acceso
+
+## Operabilidad y auditoria
+
+Registro minimo por ejecucion:
+- `agent_id`
+- `tenant_id`
+- `trace_id`
+- version de modelo/prompt
+- tools invocadas
+- decision final
+
+Si no podes reconstruir una ejecucion, no podes defenderla ante auditoria.
+
+## Trade-offs y criterios de decision
+
+### Trade-off 1: velocidad de iteracion vs rigor de evaluacion
+
+Iterar rapido mejora aprendizaje.
+Sin evals, aumenta deuda y riesgo.
+
+Criterio:
+- cambios de alto impacto exigen gates de evaluacion obligatorios.
+
+### Trade-off 2: costo de evaluacion vs costo de incidente
+
+Evaluar bien cuesta tiempo y compute.
+No evaluar cuesta incidentes y reputacion.
+
+Criterio:
+- priorizar evals en capabilities con mayor riesgo externo.
+
+### Trade-off 3: autonomia de agente vs control operativo
+
+Mas autonomia reduce friccion.
+Tambien amplifica fallos.
+
+Criterio:
+- autonomia graduada por nivel de riesgo y evidencia historica.
+
+## Errores comunes (y por que pasan)
+
+- Medir solo calidad textual y no safety/cost.
+- No versionar prompt ni politica de tools.
+- Desplegar sin canary ni rollback operativo.
+- No separar metricas por `tenant_id`.
+- Tratar evals como tarea de laboratorio y no de produccion.
+
+La causa central es no tratar IA como sistema operativo de negocio.
+
+## Checklist de arquitectura para este capitulo
+
+- [ ] Existe eval harness para quality, safety y cost.
+- [ ] Se detecta drift con comparacion contra baseline.
+- [ ] Promotion usa canary con umbrales claros.
+- [ ] Rollback puede revertir modelo, prompt y tools.
+- [ ] Auditoria registra tool call y evidencia por `trace_id`.
+- [ ] Dashboards segmentan por `tenant_id` y capability.
+- [ ] Politicas de acceso a tools estan versionadas.
+- [ ] La operacion de IA tiene ownership explicito.
+
+## Estructura lista para expandir
+
+- Catalogo de evals por capability.
+- Politica de promotion y rollback de agentes.
+- Matriz de riesgo para autonomia IA.
+- Pipeline CI/CD con gates de safety.
+- Gobernanza de costo por tenant y plan.

@@ -1,0 +1,175 @@
+---
+title: Capitulo 22 - Contratos Asincronos y Consistencia Distribuida
+description: Outbox, CDC, idempotencia, evolucion de schema y sagas para sistemas event-driven.
+---
+
+# Capitulo 22 - Contratos Asincronos y Consistencia Distribuida
+
+## Contexto
+
+En sistemas distribuidos, el problema no es solo publicar eventos.
+El problema es garantizar que esos eventos sean confiables, versionables y operables en el tiempo.
+
+Sin contratos async claros aparece deuda peligrosa:
+- eventos ambiguos
+- consumidores frágiles
+- reintentos que rompen estado
+- divergencias entre DB y broker
+
+La consistencia distribuida se diseña; no aparece por usar Kafka o RabbitMQ.
+
+## Que aprendera el lector
+
+- Como formalizar contratos de eventos con versionado.
+- Como aplicar outbox pattern para evitar perdida de mensajes.
+- Cuando usar CDC para integraciones de datos.
+- Como diseñar idempotencia robusta por `tenant_id`.
+- Como modelar saga y compensaciones sin caos operativo.
+
+## Introduccion tecnica
+
+En arquitectura sync, el contrato vive en endpoint.
+En arquitectura async, el contrato vive en evento + schema + semantica temporal.
+
+Preguntas obligatorias:
+- que hecho representa el evento
+- quien es owner del schema
+- que compatibilidad se garantiza
+- que ocurre si el consumidor falla o procesa dos veces
+
+Si no respondes esto, no tenes EDA; tenes mensajes sueltos.
+
+## Outbox pattern como baseline
+
+Outbox evita el clasico problema "guarde en DB pero no publique evento".
+
+Flujo:
+1. transaccion escribe dato de negocio + registro outbox
+2. proceso relay publica evento al broker
+3. outbox marca estado de publicacion
+
+Ventaja:
+- atomicidad entre cambio de estado y evento.
+
+Sin outbox, la consistencia depende de suerte o retries ad-hoc.
+
+## CDC (Change Data Capture) cuando aplica
+
+CDC captura cambios del log de base para alimentar pipelines.
+
+Buen fit:
+- analytics near real-time
+- replicacion de proyecciones
+- integracion con sistemas legados
+
+Riesgo:
+- usar CDC como reemplazo de eventos de dominio puede diluir semantica.
+
+Regla:
+- eventos de negocio para workflows,
+- CDC para sincronizacion de datos.
+
+## Idempotencia por contrato
+
+En entrega at-least-once, duplicados son esperables.
+Idempotencia no es opcion.
+
+Controles minimos:
+- `event_id` unico
+- `idempotency_key` por operacion
+- registro de procesamiento por consumidor y `tenant_id`
+- ventanas de deduplicacion definidas
+
+Si el mismo evento produce dos pagos, la arquitectura fallo aunque "el broker ande".
+
+## Evolucion de schema y compatibilidad
+
+Todo schema cambia.
+La pregunta es si cambia con gobernanza.
+
+Practicas recomendadas:
+- cambios backward-compatible como default
+- version nueva solo para breaking
+- schema registry con validacion en CI
+- ownership explicito del evento
+
+Contrato sin ownership termina abandonado o roto.
+
+## Saga y compensaciones
+
+Para flujos multi-servicio no hay transaccion global gratis.
+Necesitas saga o proceso equivalente.
+
+Modelo base:
+- pasos locales con eventos
+- estado de progreso de la saga
+- compensacion por paso fallido
+
+No toda operacion necesita saga.
+Solo procesos largos con efectos cruzados relevantes.
+
+## Observabilidad de flujos async
+
+Metadatos obligatorios por evento:
+- `event_id`
+- `event_type`
+- `tenant_id`
+- `trace_id`
+- `schema_version`
+
+Sin correlacion, debuggear pipelines async se vuelve adivinanza.
+
+## Trade-offs y criterios de decision
+
+### Trade-off 1: simplicidad inicial vs consistencia fuerte
+
+Publicar directo al broker es rapido.
+Outbox agrega complejidad, pero reduce incidentes de integridad.
+
+Criterio:
+- en flujos criticos, outbox no es negociable.
+
+### Trade-off 2: schema flexible vs contrato estable
+
+Flexibilidad total acelera cambios locales.
+Rompe consumidores en ecosistema real.
+
+Criterio:
+- gobernar compatibilidad con schema registry y reglas formales.
+
+### Trade-off 3: orquestacion de saga vs autonomia local
+
+Saga formal da control y compensacion.
+Tambien agrega estado y operacion adicional.
+
+Criterio:
+- usar saga cuando el costo del fallo cruzado justifica la gobernanza.
+
+## Errores comunes (y por que pasan)
+
+- Usar eventos sin schema versionado.
+- Omitir outbox en operaciones criticas.
+- No modelar idempotencia por consumidor.
+- Mezclar CDC con eventos de dominio sin criterio.
+- Crear saga sin estrategia de compensacion.
+
+La causa raiz es tratar async como detalle de infraestructura y no como contrato de negocio.
+
+## Checklist de arquitectura para este capitulo
+
+- [ ] Eventos criticos tienen owner y schema versionado.
+- [ ] Flujos sensibles usan outbox pattern.
+- [ ] CDC se usa con objetivo de datos explicito.
+- [ ] Consumidores implementan idempotencia por `event_id`.
+- [ ] Existe control de compatibilidad en CI.
+- [ ] Metadata incluye `tenant_id` y `trace_id`.
+- [ ] Sagas tienen compensaciones documentadas.
+- [ ] Hay dashboards para latencia y fallos async.
+
+## Estructura lista para expandir
+
+- Taxonomia de eventos por dominio.
+- Playbook outbox + relay + retries.
+- Guia de schema evolution y governance.
+- Sagas y compensaciones por capability.
+- Observabilidad avanzada de pipelines async.

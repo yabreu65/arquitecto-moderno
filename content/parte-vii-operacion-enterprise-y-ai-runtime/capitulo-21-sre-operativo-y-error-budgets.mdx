@@ -1,0 +1,177 @@
+---
+title: Capitulo 21 - SRE Operativo y Error Budgets
+description: SLI/SLO, error budgets, burn rate y operacion de incidentes para SaaS multi-tenant.
+---
+
+# Capitulo 21 - SRE Operativo y Error Budgets
+
+## Contexto
+
+Escalar arquitectura sin SRE termina en caos operativo.
+En enterprise, no alcanza con tener "servicios andando".
+Necesitas objetivos de confiabilidad explicitados y defendibles frente a negocio.
+
+Cuando no hay disciplina de confiabilidad aparecen sintomas repetidos:
+- releases riesgosos sin criterio
+- incidentes recurrentes sin aprendizaje
+- conflictos entre velocidad y estabilidad
+- discusiones eternas porque nadie comparte una metrica comun
+
+SRE transforma confiabilidad en contrato operativo.
+
+## Que aprendera el lector
+
+- Diferencia entre SLI, SLO y SLA en contexto SaaS.
+- Como usar error budget para gobernar releases.
+- Como instrumentar burn rate y alertas utiles.
+- Como operar incidentes con runbook y command structure.
+- Como definir SLO tenant-aware por capacidad de negocio.
+
+## Introduccion tecnica
+
+Confiabilidad no es opinion.
+Es evidencia continua sobre comportamiento del sistema.
+
+SLI (service level indicator): metrica observable.
+SLO (service level objective): umbral objetivo para el SLI.
+SLA (service level agreement): compromiso contractual externo.
+
+Regla:
+- primero medimos SLI,
+- luego definimos SLO,
+- despues firmamos SLA.
+
+Si se invierte el orden, prometes lo que no podes operar.
+
+## Modelo de SLO por capacidad
+
+No definas un solo SLO global para toda la plataforma.
+Defini SLO por capability:
+- autenticacion
+- lectura API critica
+- ingesta de eventos
+- ejecucion de jobs
+- flujo de agente IA
+
+Ejemplo:
+- `api_properties_read_p95 < 300ms`
+- `queue_processing_success_rate >= 99.5%`
+- `agent_tool_call_error_rate < 1%`
+- `incident_mttr < 30m` para capacidades tier-1
+
+Los SLOs deben existir por entorno y, cuando aplique, por tier de tenant.
+
+## Error budget como politica de release
+
+Error budget = 1 - disponibilidad objetivo del periodo.
+
+Si el objetivo mensual es 99.9%, el presupuesto de error es 0.1%.
+
+Uso pragmatico:
+- budget sano: se habilitan cambios normales
+- budget en riesgo: se congelan features de alto riesgo
+- budget agotado: foco exclusivo en estabilidad
+
+Esto evita releases impulsivas cuando la plataforma ya esta degradada.
+
+## Burn rate y alertas accionables
+
+Burn rate mide que tan rapido consumis el error budget.
+
+Patron recomendado:
+- alerta rapida (ventana corta, impacto alto)
+- alerta lenta (ventana larga, deterioro sostenido)
+
+No todo alerta requiere pager.
+Solo lo que amenaza SLO critico con impacto real.
+
+## Operacion de incidentes
+
+Cuando hay incidente, hace falta estructura minima:
+- incident commander
+- owner tecnico por dominio
+- canal unico de comunicacion
+- timeline de decisiones
+
+Despues del incidente:
+- postmortem sin culpa
+- accion correctiva con owner y fecha
+- validacion de efectividad en siguientes semanas
+
+Sin esta disciplina, solo repetis incidentes con nombres nuevos.
+
+## SRE tenant-aware
+
+En SaaS, no basta latencia promedio global.
+Necesitas visibilidad por `tenant_id` y por segmento:
+- p95 por tenant premium
+- error rate por capability y plan
+- saturacion por ruta y tenant
+
+Asi detectas noisy neighbors y degradacion selectiva antes del reclamo.
+
+## Runbooks y automatizacion
+
+Cada alerta critica debe tener runbook ejecutable:
+- sintomas esperados
+- consultas de diagnostico
+- mitigacion inmediata
+- criterio de escalamiento
+- rollback recomendado
+
+Runbook sin ownership es documento muerto.
+
+## Trade-offs y criterios de decision
+
+### Trade-off 1: velocidad de feature vs confiabilidad
+
+Entregar rapido aumenta valor en corto plazo.
+Sin control, degrada estabilidad acumulada.
+
+Criterio:
+- usar error budget como semaforo de release.
+
+### Trade-off 2: pocas metricas vs cobertura real
+
+Pocas metricas simplifican dashboard.
+Pero pueden ocultar fallos por dominio.
+
+Criterio:
+- pocas metricas globales + SLI criticos por capability.
+
+### Trade-off 3: alerta agresiva vs fatiga operacional
+
+Alertar todo parece seguro.
+Termina apagando al equipo por ruido.
+
+Criterio:
+- alertar solo amenazas reales a SLO/SLA.
+
+## Errores comunes (y por que pasan)
+
+- Definir SLO sin SLI confiable.
+- Confundir SLA comercial con meta de ingenieria.
+- No usar error budget para decisiones reales.
+- Alertas sin runbook.
+- Medir solo global y no por `tenant_id`.
+
+La causa habitual es tratar SRE como monitoreo cosmetico y no como sistema de decision.
+
+## Checklist de arquitectura para este capitulo
+
+- [ ] Cada capability critica tiene SLI y SLO definidos.
+- [ ] Error budget tiene politica operativa de release.
+- [ ] Existen alertas de burn rate en ventanas corta y larga.
+- [ ] Incidentes usan command structure con roles claros.
+- [ ] Hay postmortem con acciones correctivas medibles.
+- [ ] Dashboards incluyen vista por `tenant_id`.
+- [ ] Alertas criticas tienen runbook con ownership.
+- [ ] SLOs se revisan segun evidencia y etapa del producto.
+
+## Estructura lista para expandir
+
+- Catalogo de SLO por capability.
+- Politica formal de error budget por trimestre.
+- Plantilla de incident response y postmortem.
+- Estrategia de alerting anti-fatiga.
+- SRE tenant-aware para planes enterprise.

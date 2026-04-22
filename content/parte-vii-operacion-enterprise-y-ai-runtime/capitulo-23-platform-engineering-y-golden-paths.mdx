@@ -1,0 +1,165 @@
+---
+title: Capitulo 23 - Platform Engineering y Golden Paths
+description: IDP, scorecards y caminos pavimentados para escalar equipos y estandares.
+---
+
+# Capitulo 23 - Platform Engineering y Golden Paths
+
+## Contexto
+
+Cuando el producto crece, la arquitectura deja de ser solo codigo.
+Pasa a depender de como los equipos construyen, despliegan y operan consistentemente.
+
+Sin platform engineering, cada equipo inventa su propio camino:
+- pipelines distintos
+- seguridad inconsistente
+- observabilidad incompleta
+- velocidad impredecible
+
+Golden paths convierten buenas practicas en defaults.
+
+## Que aprendera el lector
+
+- Que es platform engineering en un SaaS enterprise.
+- Como diseñar un golden path sin burocracia excesiva.
+- Rol de un IDP (internal developer platform).
+- Como usar scorecard para gobernar estandares por servicio.
+- Como equilibrar autonomia de equipos y control operativo.
+
+## Introduccion tecnica
+
+Platform engineering no reemplaza equipos de producto.
+Les reduce carga cognitiva y riesgo operacional.
+
+Objetivo:
+- que construir un servicio correcto sea facil,
+- y desviarse de estandares criticos sea dificil.
+
+Esto requiere plataforma como producto interno.
+
+## Golden path como estrategia de adopcion
+
+Golden path = template + pipeline + observabilidad + seguridad base.
+
+Incluye:
+- boilerplate de servicio con convenciones
+- CI/CD estandar
+- logging/tracing/metrics por defecto
+- controles de seguridad y policy checks
+
+Si el golden path no ahorra tiempo real, nadie lo adopta.
+
+## IDP (Internal Developer Platform)
+
+Un IDP centraliza capacidades repetibles:
+- provision de servicios
+- catalogo de APIs/eventos
+- estado de despliegues
+- score de cumplimiento
+
+No es portal de vanity.
+Es herramienta de ejecucion para acelerar entrega con calidad.
+
+## Scorecard de arquitectura
+
+Scorecard permite medir madurez por servicio.
+
+Dimensiones recomendadas:
+- seguridad
+- observabilidad
+- resiliencia
+- ownership
+- costo
+- documentacion
+
+Ejemplo de regla:
+- sin score minimo de seguridad y observabilidad, no hay promotion a produccion.
+
+## Developer experience como metrica
+
+Sin DX, la arquitectura se incumple por fatiga del equipo.
+
+Metricas utiles:
+- lead time de servicio nuevo
+- tiempo de primer deploy exitoso
+- tasa de pipelines rojos por config
+- tickets repetidos de infraestructura
+
+Plataforma madura mejora estas metricas de forma comprobable.
+
+## Ownership y modelo operativo
+
+Platform team define caminos y guardrails.
+Domain teams mantienen ownership funcional de sus servicios.
+
+Regla:
+- centralizar estandares,
+- descentralizar responsabilidad de negocio.
+
+Sin esta frontera, aparece cuello de botella o anarquia tecnica.
+
+## Control plane de desarrollo
+
+Asi como existe control plane de tenant lifecycle,
+tambien necesitas control plane para ciclo de desarrollo:
+- politicas de provision
+- plantillas versionadas
+- excepciones auditadas
+- trazabilidad de cambios de plataforma
+
+Esto evita que la evolucion de engineering dependa de heroes individuales.
+
+## Trade-offs y criterios de decision
+
+### Trade-off 1: autonomia total vs estandarizacion
+
+Autonomia extrema acelera corto plazo.
+Pero fragmenta calidad y operacion.
+
+Criterio:
+- estandarizar lo repetitivo y de alto riesgo.
+
+### Trade-off 2: plataforma minima vs plataforma gigante
+
+Plataforma minima puede quedarse corta.
+Plataforma gigante crea burocracia.
+
+Criterio:
+- construir capabilities por demanda comprobada.
+
+### Trade-off 3: compliance estricto vs friccion de entrega
+
+Mas controles reducen riesgo.
+Tambien pueden frenar adopcion.
+
+Criterio:
+- controles automaticos como default, excepciones con fecha de expiracion.
+
+## Errores comunes (y por que pasan)
+
+- Crear IDP sin resolver dolores reales del equipo.
+- Golden path sin observabilidad ni seguridad por defecto.
+- Scorecard sin impacto en decisiones de release.
+- Platform team aislado del producto.
+- Excepciones permanentes sin cierre.
+
+La causa frecuente es construir plataforma por moda y no por restricciones operativas reales.
+
+## Checklist de arquitectura para este capitulo
+
+- [ ] Existe golden path adoptable y versionado.
+- [ ] IDP ofrece capacidades de provision y visibilidad.
+- [ ] Scorecard mide seguridad, resiliencia y costo.
+- [ ] Guardrails se aplican automaticamente en CI/CD.
+- [ ] DX se mide con metricas de flujo.
+- [ ] Hay ownership claro entre platform y domain teams.
+- [ ] Excepciones tienen owner y fecha de expiracion.
+- [ ] Evolucion de plataforma se prioriza con roadmap.
+
+## Estructura lista para expandir
+
+- Blueprint de golden path por stack.
+- Catalogo de capacidades del IDP.
+- Modelo de scorecard por tipo de servicio.
+- Politica de excepciones y expiracion.
+- Mapa de responsabilidades platform vs dominio.
