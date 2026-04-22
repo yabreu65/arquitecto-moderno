@@ -130,62 +130,100 @@ La clave es tener contratos de datos que no asuman una sola topologia para siemp
 
 ## NUEVO 10.4 - Estrategia de particionado hibrido y control plane
 
-La evolucion enterprise rara vez termina en un modelo unico.
-Lo habitual es una estrategia hibrida donde conviven topologias por segmento de tenant.
+En SaaS B2B real, los tenants no son homogéneos.
+Tenes long-tail (muchos tenants chicos de bajo consumo) y tenants enterprise (pocos, pero con carga alta y requisitos fuertes de aislamiento).
 
-En terminos practicos:
-- tenants SMB pueden vivir en `pool` (shared-tables)
-- tenants growth pueden migrar a `schema-per-tenant`
-- tenants premium/regulados pueden operar en `silo` (database-per-tenant)
+Intentar servir ambos con una sola topologia termina mal:
+- o explotas costos
+- o degradas performance
+- o incumplis requerimientos regulatorios
 
-El desafio no es tecnico solamente.
-Es operativo: decidir, registrar y automatizar en que topologia vive cada tenant en cada etapa.
+La salida es una estrategia hibrida gestionada por control plane.
 
-El control plane define:
-- en que topologia vive cada tenant
-- reglas de promocion entre tiers
-- politicas de capacidad, backup y cumplimiento
-- automatizacion de provisiones y migraciones
+### Que es el particionado hibrido
 
-Sin control plane, una estrategia hibrida se vuelve operativamente caotica.
+Combina niveles de aislamiento en una sola plataforma:
 
-Capacidades minimas del control plane:
-- registro maestro de tenants y su topologia activa
-- flujos de migracion idempotentes
-- auditoria de cambios de topologia
-- observabilidad de estado por tenant
+- Capa `Pool` (shared): varios tenants en infraestructura compartida con aislamiento por `tenant_id` y RLS.
+- Capa `Silo` (isolated): tenant con base dedicada para rendimiento y cumplimiento.
 
-### Flujo de promocion entre topologias
+Segun el producto, tambien podes usar una capa intermedia `Schema-per-tenant`.
 
-Un flujo recomendado para evitar migraciones traumaticas:
-1. detectar umbral de negocio/tecnico (volumen, compliance, noisy-neighbor)
-2. crear destino (`schema` o `database`) para el tenant
+Regla:
+- no elegis "el mejor modelo" global
+- elegis el modelo correcto por segmento de tenant
+
+### Tenant catalog: el mapa de infraestructura
+
+El control plane necesita un Tenant Catalog como fuente de verdad.
+
+Metadatos minimos por tenant:
+- `tenant_id`
+- `routing_mode` (`POOL` / `SCHEMA` / `SILO`)
+- endpoint o `db_url` activo
+- tier/suscripcion
+- politicas de residencia y retencion
+
+Cuando entra una request, el backend consulta este catalogo en milisegundos y decide a que topologia enrutar.
+
+Sin catalogo, el routing termina hardcodeado y fragil.
+
+### Implementacion en NestJS: dynamic connection router
+
+No hardcodees conexiones.
+Resuelve por request usando `tenant_id` del contexto autenticado.
+
+```ts
+import { Inject, Injectable, Scope } from "@nestjs/common";
+import { REQUEST } from "@nestjs/core";
+
+@Injectable({ scope: Scope.REQUEST })
+export class TenantConnectionProvider {
+  constructor(
+    @Inject(REQUEST) private readonly request: { user: { tenantId: string } },
+    private readonly catalog: TenantCatalogService,
+    private readonly connectionPool: ConnectionPoolService,
+  ) {}
+
+  async getConnection() {
+    const tenantId = this.request.user.tenantId;
+    const config = await this.catalog.getTenantConfig(tenantId);
+
+    if (config.strategy === "SILO") {
+      return this.connectionPool.getDedicatedConnection(config.dbUrl);
+    }
+
+    return this.connectionPool.getSharedConnection();
+  }
+}
+```
+
+Clave: `tenant_id` viene del JWT/tenant context validado, no de headers sin control.
+
+### Ruta de migracion: pool -> silo sin downtime perceptible
+
+La ventaja fuerte del modelo hibrido es evolucionar tenant por tenant.
+
+Flujo recomendado:
+1. detectar umbral (volumen, SLO, compliance, noisy-neighbor)
+2. aprovisionar destino dedicado via IaC
 3. replicar y validar datos
 4. ejecutar cutover controlado
-5. monitorear integridad y latencia post-cutover
+5. actualizar Tenant Catalog
+6. monitorear integridad y latencia post-cutover
 
-Si no hay este flujo, la estrategia hibrida se transforma en operaciones manuales con alto riesgo.
+Este flujo permite crecer clientes sin romper servicio.
 
-### Tenant catalog como fuente de verdad
+### Guardrails operativos del control plane
 
-El control plane necesita un catalogo de tenants con, al menos:
-- `tenant_id`
-- topologia activa (`pool`/`schema`/`silo`)
-- version de esquema
-- endpoint de datos asociado
-- politicas de retencion/compliance
+Minimos no negociables:
+- migraciones idempotentes y orquestadas
+- backups y rollback automatizados por topologia
+- alertas de drift entre catalogo y recursos reales
+- auditoria de cada cambio de routing
+- tagging/FinOps por tenant para trazabilidad de costo
 
-La API y los workers deben enrutar por este catalogo, no por reglas hardcodeadas.
-
-### Guardrails para particionado hibrido
-
-Minimos operativos:
-- plantillas IaC por topologia
-- runbooks de rollback de migracion
-- pruebas de no-contaminacion multi-tenant
-- alertas por drift entre catalogo y recursos reales
-
-Sin guardrails, el modelo hibrido pierde trazabilidad y se vuelve dificil de auditar.
+Sin estos guardrails, la hibridacion se transforma en caos operativo.
 
 ## Trade-offs y criterios de decision
 

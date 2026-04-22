@@ -37,6 +37,30 @@ La idea clave:
 
 Cuando esta jerarquia se invierte, el sistema envejece rapido.
 
+## La anatomia del hexagono (Ports & Adapters)
+
+En lugar de capas donde todo termina dependiendo de la DB o del framework,
+visualizamos un nucleo de negocio que se conecta al exterior por puertos y adaptadores.
+
+- Nucleo (dominio + aplicacion): entidades, reglas y casos de uso.
+- Puertos: contratos TypeScript que declaran necesidades del nucleo.
+- Adaptadores: implementaciones concretas para DB, APIs, colas o proveedores de IA.
+
+Regla de oro:
+- el nucleo define contratos,
+- la periferia los implementa.
+
+## Desacoplando la IA con adaptadores
+
+Si llamas el SDK de un proveedor de IA directo desde casos de uso, quedas en lock-in tecnico.
+
+Patron recomendado:
+1. definir puerto de dominio (ej. `TextGenerationPort`)
+2. crear adaptadores (`OpenAiAdapter`, `AnthropicAdapter`, `LocalLlmAdapter`)
+3. inyectar implementacion via DI en NestJS
+
+Asi, cambiar proveedor no obliga reescribir logica de negocio.
+
 ## Dominio: logica de negocio pura
 
 ### Que vive en dominio
@@ -101,6 +125,47 @@ Ejemplo:
 
 Si cambias Prisma por otro mecanismo, cambias adapter, no caso de uso.
 
+## Implementacion practica en NestJS
+
+Estructura orientada a testabilidad y limites claros:
+
+```text
+src/
+  modules/
+    properties/
+      domain/
+      application/
+      infrastructure/
+```
+
+Caso de uso desacoplado (conceptual):
+
+```ts
+export class AnalyzeEfficiencyUseCase {
+  constructor(
+    private readonly propertyRepo: PropertyRepositoryPort,
+    private readonly aiAdapter: AiGenerationPort,
+  ) {}
+
+  async execute(propertyId: string, tenantId: string) {
+    const property = await this.propertyRepo.findById(propertyId, tenantId);
+    const prompt = `Analiza la eficiencia del edificio: ${property.name}`;
+    return this.aiAdapter.generate(prompt);
+  }
+}
+```
+
+El caso de uso no sabe si los datos salen de Postgres, ni si la IA es GPT, Claude o un modelo local.
+
+## Vínculo con multi-tenancy
+
+En arquitectura madura, `tenant_id` fluye por puertos y adaptadores sin contaminar el dominio.
+
+- En DB: el adapter aplica aislamiento por `tenant_id` (RLS, schema o silo).
+- En IA: el adapter garantiza contexto de tenant antes de llamar al modelo.
+
+Esto conecta este capitulo con las reglas de gobernanza de RAG y seguridad multi-tenant.
+
 ## Testing por capas
 
 ### Estrategia pragmatica
@@ -141,6 +206,13 @@ Rompe consistencia en tres meses.
 
 Criterio:
 - proteger core aunque implique mas disciplina inicial.
+
+### Trade-off 4: arquitectura limpia vs over-engineering
+
+Para un CRUD trivial, una hexagonal completa puede ser exceso.
+
+Criterio:
+- aplicar el patron de forma estricta en dominios complejos, IA agentica y sistemas estrategicos de largo plazo.
 
 ## Errores comunes (y por que pasan)
 
