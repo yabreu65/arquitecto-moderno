@@ -34,6 +34,17 @@ Hace falta definir politicas claras de reintento, expiracion y compensacion.
 
 Diseñar colas correctamente implica definir contratos de job, lifecycle y ownership de errores.
 
+## Alcance y limites
+
+Este capitulo cubre:
+- modelado de jobs, retries, DLQ e idempotencia
+- operacion BullMQ tenant-aware
+- mitigacion de noisy neighbor y fallos externos
+
+Este capitulo no cubre:
+- gobernanza formal de contratos async y schemas (ver Capitulo 22)
+- politicas SRE completas de error budget (ver Capitulo 21)
+
 ## Modelado de jobs
 
 Un job bien disenado incluye:
@@ -196,6 +207,12 @@ Criterio:
 - Mezclar logica de negocio pesada en producer sin control.
 
 La causa habitual: ver colas como "infra de fondo" y no como parte del dominio operativo.
+
+## Conecta con
+
+- Capitulo 13: eventos de dominio que alimentan colas.
+- Capitulo 22: consistencia distribuida y compensaciones.
+- Capitulo 21: metricas SLO para latencia y tasa de exito de jobs.
 
 ## Checklist de arquitectura para este capitulo
 

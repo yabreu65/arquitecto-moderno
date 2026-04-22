@@ -38,6 +38,17 @@ Gobernanza en IA significa definir:
 - quien aprueba acciones irreversibles
 - como se audita cada tool call
 
+## Alcance y limites
+
+Este capitulo cubre:
+- gobernanza runtime para agentes en SaaS
+- HITL, checkpointing, rate limits y token budgeting
+- guardrails anti-loop y estrategia anti lock-in
+
+Este capitulo no cubre:
+- diseno detallado de patrones de orquestacion (ver Capitulo 17)
+- marco de evaluacion continua de calidad/safety/cost (ver Capitulo 24)
+
 ## 18.1 Human-in-the-loop (HITL)
 
 HITL no es un modal estetico. Es una politica de control en el flujo de ejecucion.
@@ -152,6 +163,12 @@ Criterio:
 - Acoplar politicas de seguridad al framework.
 
 La causa central es tratar agentes como feature de UX y no como sistema distribuido con riesgo.
+
+## Conecta con
+
+- Capitulo 17: patrones de orquestacion y supervisor.
+- Capitulo 21: operacion SRE para incidentes y politicas de release.
+- Capitulo 24: evals continuas y rollback de comportamiento.
 
 ## Checklist de arquitectura para este capitulo
 

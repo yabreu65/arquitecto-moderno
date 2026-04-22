@@ -1,0 +1,45 @@
+---
+title: Apendice - Readiness SaaS, Distribuido e IA
+description: Checklist go/no-go para validar madurez antes de escalar arquitectura y agentes.
+---
+
+# Apendice - Readiness SaaS, Distribuido e IA
+
+## Contexto
+
+Escalar sin readiness formal es mover riesgo de lugar.
+Este checklist condensa criterios minimos para go/no-go.
+
+## Bloque A - SaaS multi-tenant
+
+- [ ] Estrategia de aislamiento documentada (pool/schema/silo).
+- [ ] `tenant_id` propagado en API, jobs y logs.
+- [ ] Tenant context validado en frontera de entrada.
+- [ ] Auditoria y trazabilidad por tenant.
+
+## Bloque B - Sistemas distribuidos
+
+- [ ] Eventos con schema versionado y ownership.
+- [ ] Idempotencia en consumidores criticos.
+- [ ] Outbox en flujos sensibles.
+- [ ] SLO/SLI definidos por capability.
+- [ ] Runbooks y on-call activos.
+
+## Bloque C - IA en produccion
+
+- [ ] RAG con pre-filtering por `tenant_id`.
+- [ ] Guardrails de tool-calling y RBAC.
+- [ ] HITL en acciones irreversibles.
+- [ ] Rate limits y token budgeting por plan.
+- [ ] Eval harness de quality/safety/cost.
+
+## Semaforo de decision
+
+- Verde: > 90% checks cumplidos
+- Amarillo: 70%-90% con plan de mitigacion
+- Rojo: < 70%, no escalar sin remediacion
+
+## Criterio senior
+
+Readiness no es burocracia.
+Es el mecanismo para evitar que una arquitectura "correcta en papel" falle en produccion.

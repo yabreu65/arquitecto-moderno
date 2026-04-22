@@ -36,6 +36,17 @@ RAG tiene tres zonas sensibles:
 
 Si cualquiera de esas zonas pierde aislamiento, el prompt final queda contaminado.
 
+## Alcance y limites
+
+Este capitulo cubre:
+- aislamiento de datos vectoriales en contexto multi-tenant
+- autorizacion en retrieval con pre-filtering
+- evaluacion de leakage y calidad por tenant
+
+Este capitulo no cubre:
+- diseno de flujos multi-agente (ver Capitulo 17)
+- gobernanza runtime y cuotas operativas de agentes (ver Capitulo 18)
+
 ## 16.1 Aislamiento en bases de datos vectoriales
 
 El desafio principal no es la similitud semantica.
@@ -280,6 +291,12 @@ Criterio:
 - Evaluar solo calidad linguistica y no seguridad.
 
 La causa habitual: tratar RAG como feature de UX en lugar de subsistema critico.
+
+## Conecta con
+
+- Capitulo 11: tenant context como fuente de verdad para filtros.
+- Capitulo 17: agentes que consumen contexto recuperado por RAG.
+- Capitulo 24: evaluacion continua de quality/safety/cost en runtime.
 
 ## Checklist de arquitectura para este capitulo
 

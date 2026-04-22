@@ -570,41 +570,130 @@ const chapters = [
   },
 ];
 
+const companionDocs = [
+  {
+    name: "Caso End-to-End",
+    path: "content/caso-end-to-end-buildingos.mdx",
+    minLines: 70,
+    requiredHeadings: [
+      "## Objetivo del caso",
+      "## Escenario",
+      "## Paso 1 - Entrada API y tenant context",
+      "## Paso 2 - Retrieval RAG seguro",
+      "## Paso 3 - Supervisor agent y decision de flujo",
+      "## Paso 4 - Publicacion de eventos y procesamiento async",
+      "## Paso 5 - Operacion y confiabilidad",
+      "## Paso 6 - Evaluacion continua de IA",
+      "## Checklist de verificacion rapida",
+    ],
+    requiredTerms: ["tenant_id", "trace_id", "rag", "slo", "agent"],
+  },
+  {
+    name: "Apendice ADR",
+    path: "content/apendice-adr-template.mdx",
+    minLines: 50,
+    requiredHeadings: [
+      "## Contexto",
+      "## Cuando crear una ADR",
+      "## Plantilla",
+      "## Checklist de calidad ADR",
+    ],
+    requiredTerms: ["adr", "trade-offs", "rollback", "tenant_id"],
+  },
+  {
+    name: "Apendice Runbook",
+    path: "content/apendice-runbook-incidentes.mdx",
+    minLines: 45,
+    requiredHeadings: [
+      "## Contexto",
+      "## Activacion",
+      "## Roles",
+      "## Secuencia operativa",
+      "## Postmortem sin culpa",
+    ],
+    requiredTerms: ["runbook", "slo", "tenant_id", "postmortem"],
+  },
+  {
+    name: "Apendice Scorecard",
+    path: "content/apendice-scorecard-servicios.mdx",
+    minLines: 40,
+    requiredHeadings: [
+      "## Contexto",
+      "## Dimensiones recomendadas",
+      "## Escala sugerida",
+      "## Regla de promotion",
+    ],
+    requiredTerms: [
+      "scorecard",
+      "seguridad",
+      "observabilidad",
+      "resiliencia",
+      "tenant_id",
+    ],
+  },
+  {
+    name: "Apendice Readiness",
+    path: "content/apendice-readiness-saas-distribuido-ia.mdx",
+    minLines: 40,
+    requiredHeadings: [
+      "## Contexto",
+      "## Bloque A - SaaS multi-tenant",
+      "## Bloque B - Sistemas distribuidos",
+      "## Bloque C - IA en produccion",
+      "## Semaforo de decision",
+    ],
+    requiredTerms: [
+      "tenant_id",
+      "outbox",
+      "slo",
+      "rag",
+      "eval harness",
+    ],
+  },
+];
+
 function fail(message) {
   console.error(`ERROR: ${message}`);
   process.exitCode = 1;
 }
 
-for (const chapter of chapters) {
-  const source = await readFile(path.join(process.cwd(), chapter.path), "utf8");
+function validateDocuments(documents) {
+  return Promise.all(
+    documents.map(async (doc) => {
+      const source = await readFile(path.join(process.cwd(), doc.path), "utf8");
 
-  for (const heading of chapter.requiredHeadings) {
-    if (!source.includes(heading)) {
-      fail(`[${chapter.name}] Falta seccion requerida: ${heading}`);
-    }
-  }
+      for (const heading of doc.requiredHeadings) {
+        if (!source.includes(heading)) {
+          fail(`[${doc.name}] Falta seccion requerida: ${heading}`);
+        }
+      }
 
-  const lower = source.toLowerCase();
+      const lower = source.toLowerCase();
 
-  for (const term of chapter.requiredTerms) {
-    if (!lower.includes(term.toLowerCase())) {
-      fail(`[${chapter.name}] Falta termino clave: ${term}`);
-    }
-  }
+      for (const term of doc.requiredTerms) {
+        if (!lower.includes(term.toLowerCase())) {
+          fail(`[${doc.name}] Falta termino clave: ${term}`);
+        }
+      }
 
-  for (const term of bannedTerms) {
-    if (lower.includes(term)) {
-      fail(`[${chapter.name}] Termino no permitido detectado: ${term}`);
-    }
-  }
+      for (const term of bannedTerms) {
+        if (lower.includes(term)) {
+          fail(`[${doc.name}] Termino no permitido detectado: ${term}`);
+        }
+      }
 
-  const lines = source.split("\n").length;
-  if (lines < chapter.minLines) {
-    fail(
-      `[${chapter.name}] Capitulo con poca profundidad: ${lines} lineas (minimo esperado: ${chapter.minLines}).`,
-    );
-  }
+      const lines = source.split("\n").length;
+      if (lines < doc.minLines) {
+        fail(
+          `[${doc.name}] Documento con poca profundidad: ${lines} lineas (minimo esperado: ${doc.minLines}).`,
+        );
+      }
+    }),
+  );
 }
+
+await validateDocuments(chapters);
+await validateDocuments(companionDocs);
 
 if (!process.exitCode) {
   console.log(

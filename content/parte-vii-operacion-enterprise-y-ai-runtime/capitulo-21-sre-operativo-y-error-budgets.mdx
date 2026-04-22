@@ -43,6 +43,17 @@ Regla:
 
 Si se invierte el orden, prometes lo que no podes operar.
 
+## Alcance y limites
+
+Este capitulo cubre:
+- modelo SLI/SLO/SLA y error budgets
+- burn rate, alerting y operacion de incidentes
+- enfoque tenant-aware para confiabilidad operativa
+
+Este capitulo no cubre:
+- diseno de outbox/saga/schema evolution (ver Capitulo 22)
+- evaluacion continua de agentes IA (ver Capitulo 24)
+
 ## Modelo de SLO por capacidad
 
 No definas un solo SLO global para toda la plataforma.
@@ -156,6 +167,12 @@ Criterio:
 - Medir solo global y no por `tenant_id`.
 
 La causa habitual es tratar SRE como monitoreo cosmetico y no como sistema de decision.
+
+## Conecta con
+
+- Capitulo 20: decision estrategica de evolucion basada en SLO.
+- Capitulo 22: contratos async que impactan confiabilidad real.
+- Capitulo 24: operacion IA con gates de quality/safety/cost.
 
 ## Checklist de arquitectura para este capitulo
 

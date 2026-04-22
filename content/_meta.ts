@@ -13,6 +13,21 @@ const meta = {
   "cheatsheet-decisiones-arquitectura": {
     title: "Cheatsheet de Decisiones",
   },
+  "caso-end-to-end-buildingos": {
+    title: "Caso End-to-End BuildingOS",
+  },
+  "apendice-adr-template": {
+    title: "Apendice - Plantilla ADR",
+  },
+  "apendice-runbook-incidentes": {
+    title: "Apendice - Runbook de Incidentes",
+  },
+  "apendice-scorecard-servicios": {
+    title: "Apendice - Scorecard de Servicios",
+  },
+  "apendice-readiness-saas-distribuido-ia": {
+    title: "Apendice - Readiness SaaS/Distribuido/IA",
+  },
   "guia-editorial": {
     title: "Guia editorial",
     display: "hidden",

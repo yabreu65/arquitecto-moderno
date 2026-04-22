@@ -40,6 +40,17 @@ Es un modelo de comunicacion que requiere:
 - idempotencia
 - trazabilidad end-to-end
 
+## Alcance y limites
+
+Este capitulo cubre:
+- fundamentos de EDA y contratos de eventos
+- coreografia/orquestacion y consistencia eventual
+- decisiones de broker e instrumentacion minima
+
+Este capitulo no cubre:
+- estrategias avanzadas de outbox/saga/schema governance (ver Capitulo 22)
+- operacion de SLO/error budget en produccion (ver Capitulo 21)
+
 ## El problema: acoplamiento temporal
 
 En flujo request-response puro, una accion de negocio queda atada a todo lo que pasa despues.
@@ -214,6 +225,12 @@ Criterio:
 - Falta de observabilidad cross-service.
 
 La raiz es adoptar EDA como tecnologia y no como disciplina de arquitectura.
+
+## Conecta con
+
+- Capitulo 14: procesamiento asincrono con colas y workers.
+- Capitulo 22: contratos async, outbox y consistencia distribuida.
+- Capitulo 21: observabilidad SRE para proteger SLO en pipelines.
 
 ## Checklist de arquitectura para este capitulo
 

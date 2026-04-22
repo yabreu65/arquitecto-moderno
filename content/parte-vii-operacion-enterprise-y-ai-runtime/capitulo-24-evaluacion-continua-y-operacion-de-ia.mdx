@@ -38,6 +38,17 @@ Si optimizas uno y no los otros dos, degradas el sistema.
 La unidad de gestion no es solo el modelo.
 Es el workflow completo: prompt, retrieval, tool call, salida y efecto.
 
+## Alcance y limites
+
+Este capitulo cubre:
+- eval harness de quality/safety/cost
+- drift detection, promotion y rollback de agentes
+- auditoria operativa por tenant en runtime
+
+Este capitulo no cubre:
+- diseno inicial de patrones supervisor/network (ver Capitulo 17)
+- definicion de politicas HITL y cuotas base (ver Capitulo 18)
+
 ## Eval harness como baseline
 
 Eval harness = suite reproducible de escenarios criticos.
@@ -163,6 +174,12 @@ Criterio:
 - Tratar evals como tarea de laboratorio y no de produccion.
 
 La causa central es no tratar IA como sistema operativo de negocio.
+
+## Conecta con
+
+- Capitulo 16: retrieval y autorizacion segura en RAG.
+- Capitulo 18: guardrails runtime para agentes.
+- Capitulo 21: decision operativa con SLO/error budget.
 
 ## Checklist de arquitectura para este capitulo
 

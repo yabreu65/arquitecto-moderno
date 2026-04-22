@@ -39,6 +39,17 @@ Preguntas obligatorias:
 
 Si no respondes esto, no tenes EDA; tenes mensajes sueltos.
 
+## Alcance y limites
+
+Este capitulo cubre:
+- contratos async, outbox, CDC e idempotencia
+- evolucion de schema y compatibilidad
+- consistencia distribuida con saga/compensaciones
+
+Este capitulo no cubre:
+- tuning de workers y colas en detalle (ver Capitulo 14)
+- politicas de release por error budget (ver Capitulo 21)
+
 ## Outbox pattern como baseline
 
 Outbox evita el clasico problema "guarde en DB pero no publique evento".
@@ -154,6 +165,12 @@ Criterio:
 - Crear saga sin estrategia de compensacion.
 
 La causa raiz es tratar async como detalle de infraestructura y no como contrato de negocio.
+
+## Conecta con
+
+- Capitulo 13: fundamentos de EDA y semantica de eventos.
+- Capitulo 14: ejecucion async con colas y workers.
+- Capitulo 21: SLO y burn rate para operar pipelines distribuidos.
 
 ## Checklist de arquitectura para este capitulo
 

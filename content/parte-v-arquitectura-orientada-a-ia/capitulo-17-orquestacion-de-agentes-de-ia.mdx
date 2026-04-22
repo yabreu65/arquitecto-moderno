@@ -37,6 +37,17 @@ Diseñar orquestacion implica responder:
 - como se validan resultados
 - cuando se detiene el flujo
 
+## Alcance y limites
+
+Este capitulo cubre:
+- patrones de orquestacion (supervisor/network/custom)
+- delegacion, estado y seguridad de tool-calling
+- checkpointing conceptual para flujos con aprobacion
+
+Este capitulo no cubre:
+- politicas globales de cuotas y kill-switch multi-tenant (ver Capitulo 18)
+- evaluacion continua de agentes en produccion (ver Capitulo 24)
+
 ## Patron Supervisor
 
 Un agente supervisor coordina agentes especialistas.
@@ -404,6 +415,12 @@ Criterio:
 - No auditar quien aprobo/rechazo acciones criticas.
 
 La raiz es diseñar agentes como demo y no como componente de plataforma.
+
+## Conecta con
+
+- Capitulo 16: retrieval seguro para contexto de agentes.
+- Capitulo 18: gobernanza runtime, HITL y limites operativos.
+- Capitulo 24: eval harness y promotion/rollback de agentes.
 
 ## Checklist de arquitectura para este capitulo
 

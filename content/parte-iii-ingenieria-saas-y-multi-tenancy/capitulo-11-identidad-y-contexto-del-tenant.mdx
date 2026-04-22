@@ -38,6 +38,17 @@ Si queda implicito, aparecen bugs silenciosos y brechas de seguridad.
 Arquitectura robusta define una "fuente de verdad" para resolver tenant y la aplica de manera uniforme.
 No se permite que cada modulo "adivine" tenant con reglas propias.
 
+## Alcance y limites
+
+Este capitulo cubre:
+- resolucion de tenant y normalizacion de tenant context
+- inyeccion en NestJS para evitar parameter pollution
+- gatekeeper API para bloqueo temprano de acceso cruzado
+
+Este capitulo no cubre:
+- decisiones de topologia de datos (ver Capitulo 10)
+- politicas de compliance y auditoria profunda (ver Capitulo 12)
+
 Objetivo senior:
 - dominio ciego a la mecanica multi-tenant
 - infraestructura con inyeccion automatica de contexto
@@ -275,6 +286,12 @@ Criterio:
 - No testear escenarios de acceso cruzado.
 
 La causa mas frecuente es no tratar tenant context como contrato de seguridad.
+
+## Conecta con
+
+- Capitulo 10: routing por estrategia pool/schema/silo.
+- Capitulo 12: seguridad y trazabilidad tenant-aware.
+- Capitulo 16: autorizacion en retrieval para RAG multi-tenant.
 
 ## Checklist de arquitectura para este capitulo
 

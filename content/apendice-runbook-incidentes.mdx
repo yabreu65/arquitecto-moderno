@@ -1,0 +1,59 @@
+---
+title: Apendice - Runbook de Incidentes
+description: Guia operativa para deteccion, mitigacion, comunicacion y aprendizaje post-incidente.
+---
+
+# Apendice - Runbook de Incidentes
+
+## Contexto
+
+Un incidente sin runbook depende de improvisacion.
+En entornos enterprise, improvisar es costo, riesgo y desgaste.
+
+## Activacion
+
+Activar runbook cuando:
+- SLO critico entra en riesgo
+- hay impacto multi-tenant
+- existe degradacion sostenida sin causa clara
+
+## Roles
+
+- Incident Commander: coordina decisiones
+- Technical Lead: conduce diagnostico tecnico
+- Communications Lead: actualiza stakeholders
+
+## Secuencia operativa
+
+1. Confirmar impacto y capability afectada.
+2. Delimitar alcance por `tenant_id`.
+3. Ejecutar mitigacion inmediata (feature flag, rollback, throttling).
+4. Validar recuperacion con SLI.
+5. Comunicar estado cada ventana definida.
+6. Cerrar incidente y abrir postmortem.
+
+## Datos minimos de incidente
+
+- `incident_id`
+- inicio/fin
+- servicios afectados
+- tenants afectados (`tenant_id`)
+- causa raiz
+- mitigacion aplicada
+- acciones correctivas
+
+## Postmortem sin culpa
+
+Debe incluir:
+- timeline factual
+- factores contribuyentes
+- huecos de deteccion
+- acciones preventivas con owner y fecha
+
+## Checklist rapido
+
+- [ ] Hubo owner claro en comando de incidente.
+- [ ] Se identifico impacto por `tenant_id`.
+- [ ] Se aplico mitigacion con evidencia de recuperacion.
+- [ ] Comunicacion fue periodica y consistente.
+- [ ] Postmortem quedo publicado con acciones.

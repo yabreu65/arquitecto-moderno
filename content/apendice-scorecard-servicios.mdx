@@ -1,0 +1,46 @@
+---
+title: Apendice - Scorecard de Servicios
+description: Scorecard de madurez para seguridad, resiliencia, observabilidad, costo y ownership.
+---
+
+# Apendice - Scorecard de Servicios
+
+## Contexto
+
+Sin scorecard, cada equipo define "calidad suficiente" de forma distinta.
+El resultado es heterogeneidad operacional y deuda escondida.
+
+## Dimensiones recomendadas
+
+| Dimension | Pregunta clave | Evidencia minima |
+| --- | --- | --- |
+| Seguridad | Tiene controles de acceso y auditoria? | authz, logs con `tenant_id` |
+| Observabilidad | Se puede detectar degradacion rapido? | metricas, trazas, alertas |
+| Resiliencia | Tolera fallos y retries? | timeouts, circuit breaker, DLQ |
+| Costo | Es visible el costo por capability? | costo por request/tenant |
+| Ownership | Hay responsable claro? | owner, runbook, on-call |
+
+## Escala sugerida
+
+- 0 = inexistente
+- 1 = inicial/manual
+- 2 = funcional basico
+- 3 = estandarizado
+- 4 = automatizado y medible
+
+## Regla de promotion
+
+Servicio listo para produccion cuando:
+- seguridad >= 3
+- observabilidad >= 3
+- resiliencia >= 3
+- ownership >= 3
+
+Si alguna dimension critica < 3, abrir plan de remediacion antes de expandir trafico.
+
+## Checklist de uso
+
+- [ ] Scorecard evaluado por owner tecnico y platform.
+- [ ] Evidencia documentada por dimension.
+- [ ] Hallazgos traducidos a backlog con fecha.
+- [ ] Re-evaluacion periodica definida.

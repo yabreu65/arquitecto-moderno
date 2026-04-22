@@ -40,6 +40,17 @@ En la practica, la decision suele moverse entre tres enfoques:
 Cada uno optimiza algo distinto.
 Arquitectura madura explicita que prioriza y que sacrifica.
 
+## Alcance y limites
+
+Este capitulo cubre:
+- modelos de aislamiento de datos y su criterio de adopcion
+- control plane y tenant catalog para estrategia hibrida
+- migracion entre topologias con bajo riesgo
+
+Este capitulo no cubre:
+- resolucion e inyeccion de tenant context en runtime (ver Capitulo 11)
+- enforcement de seguridad y observabilidad avanzada (ver Capitulo 12)
+
 ## Modelo 1: database-per-tenant
 
 ### Que ofrece
@@ -285,6 +296,12 @@ Criterio:
 - Ignorar impacto de "noisy neighbor" en tenants grandes.
 
 La causa central es evitar decisiones explicitas de aislamiento temprano.
+
+## Conecta con
+
+- Capitulo 11: tenant context para enrutamiento y filtros consistentes.
+- Capitulo 13: eventos tenant-scoped en arquitectura distribuida.
+- Capitulo 20: decision de evolucion de arquitectura basada en SLO.
 
 ## Checklist de arquitectura para este capitulo
 

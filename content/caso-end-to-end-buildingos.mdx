@@ -1,0 +1,103 @@
+---
+title: Caso End-to-End BuildingOS
+description: Flujo integral desde request API hasta decision operativa con SLO en una plataforma AI-native multi-tenant.
+---
+
+# Caso End-to-End BuildingOS
+
+## Objetivo del caso
+
+Conectar decisiones de arquitectura en un flujo unico y auditable:
+- identidad multi-tenant
+- retrieval seguro
+- orquestacion de agentes
+- eventos y workers
+- observabilidad y SLO
+
+## Escenario
+
+Un usuario reporta "fuga de gas" en un edificio.
+El sistema debe responder rapido, mantener aislamiento por `tenant_id` y activar acciones controladas.
+
+## Paso 1 - Entrada API y tenant context
+
+1. El request entra por API Gateway.
+2. Se valida JWT y se resuelve `tenant_id`.
+3. Gatekeeper aplica politicas y enrutamiento.
+
+Referencias:
+- Capitulo 10
+- Capitulo 11
+- Capitulo 12
+
+## Paso 2 - Retrieval RAG seguro
+
+1. Se resuelven permisos efectivos del actor.
+2. Se aplica `pre-filtering` por `tenant_id` y documentos autorizados.
+3. Se recupera contexto y se construye prompt trazable.
+
+Referencias:
+- Capitulo 16
+
+## Paso 3 - Supervisor agent y decision de flujo
+
+1. El supervisor clasifica urgencia.
+2. Delega en agentes especializados (safety, mantenimiento, notificaciones).
+3. Si hay accion critica, crea checkpoint y espera aprobacion humana.
+
+Referencias:
+- Capitulo 17
+- Capitulo 18
+
+## Paso 4 - Publicacion de eventos y procesamiento async
+
+1. Se publica evento de dominio (`incident.created`).
+2. Workers consumen jobs idempotentes por `tenant_id`.
+3. Si hay error transitorio, retry con backoff; si permanente, DLQ.
+
+Referencias:
+- Capitulo 13
+- Capitulo 14
+- Capitulo 22
+
+## Paso 5 - Operacion y confiabilidad
+
+1. Todo el flujo se observa con `trace_id` + `tenant_id`.
+2. Se miden SLI/SLO por capability.
+3. Si burn rate sube, se restringen cambios de riesgo y se activa runbook.
+
+Referencias:
+- Capitulo 21
+- Capitulo 23
+
+## Paso 6 - Evaluacion continua de IA
+
+1. El flujo entra en eval harness de quality/safety/cost.
+2. Si una version degrada, rollback de prompt/model/tools.
+3. Se registra auditoria de tool calls y decisiones.
+
+Referencias:
+- Capitulo 24
+
+## Decisiones de arquitectura que habilitan este flujo
+
+- `tenant_id` como contrato transversal de plataforma.
+- Puertos/adaptadores para evitar lock-in de proveedor.
+- Separacion entre control plane y data plane.
+- Gobernanza operacional con SLO y error budget.
+- Evaluacion continua de IA como politica, no experimento.
+
+## Checklist de verificacion rapida
+
+- [ ] El flujo propaga `tenant_id` de punta a punta.
+- [ ] El retrieval usa pre-filtering.
+- [ ] El supervisor aplica HITL en acciones irreversibles.
+- [ ] Eventos y jobs son idempotentes.
+- [ ] Existen SLOs y runbooks operativos.
+- [ ] Hay gates de evaluacion continua para IA.
+
+## Cuando usar este caso
+
+- para onboarding de arquitectos nuevos
+- para revisar readiness antes de produccion
+- para alinear CTO, Platform y equipos de dominio

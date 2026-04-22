@@ -39,6 +39,17 @@ Es una arquitectura de controles:
 
 Si una sola capa falla, las otras tienen que sostener trazabilidad.
 
+## Alcance y limites
+
+Este capitulo cubre:
+- controles de seguridad y auditoria por tenant
+- cifrado, compliance y respuesta ante incidentes
+- observabilidad tenant-aware para seguridad y FinOps
+
+Este capitulo no cubre:
+- diseno profundo de contratos async y compensaciones (ver Capitulo 22)
+- operacion SRE formal con error budgets (ver Capitulo 21)
+
 ## Audit logging por tenant
 
 ### Que debe registrar un evento auditable
@@ -264,6 +275,12 @@ Criterio:
 - Falta de playbooks para incidentes de seguridad.
 
 La causa frecuente: seguridad vista como "checklist de venta" y no como capacidad de plataforma.
+
+## Conecta con
+
+- Capitulo 11: tenant context como entrada de enforcement.
+- Capitulo 16: autorizacion y gobernanza de retrieval en IA.
+- Capitulo 21: alertas, burn rate e incident response con criterio SRE.
 
 ## Checklist de arquitectura para este capitulo
 

@@ -34,6 +34,17 @@ Principio clave:
 
 Sin esta disciplina, el equipo entra en una zona gris donde nadie sabe que contrato esta vigente.
 
+## Alcance y limites
+
+Este capitulo cubre:
+- estrategia de versionado externo y ciclo de vida contractual
+- deprecacion, sunset y backward compatibility
+- implementacion de referencia en NestJS
+
+Este capitulo no cubre:
+- seguridad de identidad de tenant context (ver Capitulo 11)
+- contratos asincronos y versionado de eventos (ver Capitulo 22)
+
 ## Estrategias principales
 
 ### Versionado por URI path
@@ -253,6 +264,12 @@ Criterio:
 - No medir adopcion por version y por tenant.
 
 La causa principal: tratar versionado como problema de routing y no de producto.
+
+## Conecta con
+
+- Capitulo 1: fundamentos de contratos API y comunicacion.
+- Capitulo 11: identidad de tenant para enforcement consistente.
+- Capitulo 22: evolucion de contratos async y schemas de eventos.
 
 ## Checklist de arquitectura para este capitulo
 

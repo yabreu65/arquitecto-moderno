@@ -1,0 +1,68 @@
+---
+title: Apendice - Plantilla ADR
+description: Plantilla reusable para registrar decisiones arquitectonicas con trade-offs y plan de rollback.
+---
+
+# Apendice - Plantilla ADR
+
+## Contexto
+
+Una ADR (Architecture Decision Record) captura una decision tecnica de forma auditable.
+Sin ADR, las decisiones se pierden entre chats, tickets y memoria del equipo.
+
+## Cuando crear una ADR
+
+- cambio de arquitectura con impacto cross-team
+- eleccion de tecnologia con trade-offs reales
+- cambio de politica de seguridad, datos o IA
+- decisiones de evolucion de monolito a servicios
+
+## Plantilla
+
+```md
+# ADR-XXX: <titulo>
+
+## Estado
+Propuesto | Aprobado | Reemplazado
+
+## Fecha
+YYYY-MM-DD
+
+## Contexto
+Problema y restricciones actuales.
+
+## Decision
+Que se decide concretamente.
+
+## Alternativas consideradas
+- Opcion A
+- Opcion B
+- Opcion C
+
+## Trade-offs
+Impacto en costo, complejidad, latencia, seguridad, DX.
+
+## Impacto en multi-tenancy
+Como afecta `tenant_id`, aislamiento y governance.
+
+## Impacto en IA (si aplica)
+RAG, tool-calling, quotas, evaluacion continua.
+
+## Plan de implementacion
+Fases, owners, hitos.
+
+## Plan de rollback
+Condiciones de reversa y pasos tecnicos.
+
+## Metrica de exito
+SLO/KPI esperados para validar decision.
+```
+
+## Checklist de calidad ADR
+
+- [ ] Define problema y no solo solucion.
+- [ ] Enumera alternativas reales.
+- [ ] Expone trade-offs explicitamente.
+- [ ] Incluye impacto en `tenant_id` y seguridad.
+- [ ] Incluye plan de rollback verificable.
+- [ ] Define como se medira exito.
